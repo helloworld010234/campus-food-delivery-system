@@ -7,10 +7,10 @@ import com.sky.utils.JwtUtil;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.ServerEndpointConfig;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,11 +38,21 @@ class WebSocketAuthConfiguratorTest {
     @Mock
     private JwtProperties jwtProperties;
 
-    @InjectMocks
     private WebSocketAuthConfigurator configurator;
 
     private static final String SECRET_KEY = "testsecretkeytestsecretkeytestsecretkey";
     private static final long TTL = 7200000L;
+
+    @BeforeEach
+    void setUp() {
+        configurator = new WebSocketAuthConfigurator();
+        configurator.setJwtProperties(jwtProperties);
+    }
+
+    @AfterEach
+    void tearDown() {
+        configurator.setJwtProperties(null);
+    }
 
     @Test
     void shouldThrowBaseException_whenTokenIsMissing() {

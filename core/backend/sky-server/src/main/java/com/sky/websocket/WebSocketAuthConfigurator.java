@@ -19,13 +19,23 @@ import java.util.Map;
 @Slf4j
 public class WebSocketAuthConfigurator extends ServerEndpointConfig.Configurator {
 
+    private static JwtProperties staticJwtProperties;
+
     @Autowired
-    private JwtProperties jwtProperties;
+    public void setJwtProperties(JwtProperties jwtProperties) {
+        WebSocketAuthConfigurator.staticJwtProperties = jwtProperties;
+    }
 
     @Override
     public void modifyHandshake(ServerEndpointConfig config,
                                 HandshakeRequest request,
                                 HandshakeResponse response) {
+        JwtProperties jwtProperties = staticJwtProperties;
+        if (jwtProperties == null) {
+            log.error("JwtProperties not initialized — Spring bean injection failed");
+            throw new BaseException("Unauthorized");
+        }
+
         Map<String, List<String>> parameterMap = request.getParameterMap();
         List<String> tokens = parameterMap.get("token");
 
@@ -42,7 +52,7 @@ public class WebSocketAuthConfigurator extends ServerEndpointConfig.Configurator
             config.getUserProperties().put("empId", empId);
             log.debug("WebSocket handshake accepted for empId={}", empId);
         } catch (Exception e) {
-            log.warn("WebSocket handshake rejected: invalid token");
+            log.warn("WebSocket handshake rejected: invalid token", e);
             throw new BaseException("Unauthorized");
         }
     }

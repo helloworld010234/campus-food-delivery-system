@@ -58,6 +58,7 @@ public class WebSocketServer {
     public void sendToClient(String sid, String message) {
         Session session = SESSION_MAP.get(sid);
         if (session == null) {
+            log.warn("No WebSocket session found for sid={}", sid);
             return;
         }
         try {

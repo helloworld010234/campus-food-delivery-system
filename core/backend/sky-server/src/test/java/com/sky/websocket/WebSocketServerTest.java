@@ -27,6 +27,9 @@ class WebSocketServerTest {
     @Mock
     private EndpointConfig config;
 
+    @Mock
+    private jakarta.websocket.RemoteEndpoint.Basic remote;
+
     @BeforeEach
     void setUp() {
         webSocketServer = new WebSocketServer();
@@ -61,12 +64,13 @@ class WebSocketServerTest {
         Map<String, Object> userProperties = new HashMap<>();
         userProperties.put("empId", 5L);
         when(config.getUserProperties()).thenReturn(userProperties);
+        when(session.getBasicRemote()).thenReturn(remote);
 
         webSocketServer.onOpen(session, "5", config);
 
         verify(session, never()).close(any(CloseReason.class));
-        // After successful onOpen, sendToClient should be able to retrieve the session
         webSocketServer.sendToClient("5", "test message");
+        verify(remote).sendText("test message");
     }
 
     @Test
@@ -78,13 +82,14 @@ class WebSocketServerTest {
         webSocketServer.onOpen(session, "5", config);
         webSocketServer.onClose("5");
 
-        // After close, sendToClient should not find the session
         webSocketServer.sendToClient("5", "test message");
+        verify(remote, never()).sendText(anyString());
     }
 
     @Test
     void shouldDoNothing_whenSendToClientWithNullSession() {
         webSocketServer.sendToClient("nonexistent", "test message");
+        verify(session, never()).getBasicRemote();
     }
 
     @Test
@@ -92,14 +97,14 @@ class WebSocketServerTest {
         Map<String, Object> userProperties = new HashMap<>();
         userProperties.put("empId", 5L);
         when(config.getUserProperties()).thenReturn(userProperties);
+        when(session.getBasicRemote()).thenReturn(remote);
 
         webSocketServer.onOpen(session, "5", config);
 
-        jakarta.websocket.RemoteEndpoint.Basic remote = mock(jakarta.websocket.RemoteEndpoint.Basic.class);
-        when(session.getBasicRemote()).thenReturn(remote);
         doThrow(new RuntimeException("send failed")).when(remote).sendText(anyString());
 
         webSocketServer.sendToClient("5", "test message");
+        verify(remote).sendText("test message");
     }
 
     @Test
@@ -107,13 +112,13 @@ class WebSocketServerTest {
         Map<String, Object> userProperties = new HashMap<>();
         userProperties.put("empId", 5L);
         when(config.getUserProperties()).thenReturn(userProperties);
+        when(session.getBasicRemote()).thenReturn(remote);
 
         webSocketServer.onOpen(session, "5", config);
 
-        jakarta.websocket.RemoteEndpoint.Basic remote = mock(jakarta.websocket.RemoteEndpoint.Basic.class);
-        when(session.getBasicRemote()).thenReturn(remote);
         doThrow(new RuntimeException("send failed")).when(remote).sendText(anyString());
 
         webSocketServer.sendToAllClient("broadcast message");
+        verify(remote).sendText("broadcast message");
     }
 }
