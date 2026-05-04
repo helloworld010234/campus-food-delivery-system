@@ -9,10 +9,10 @@ import com.sky.properties.JwtProperties;
 import com.sky.result.Result;
 import com.sky.service.CampusService;
 import com.sky.service.MerchantService;
+import com.sky.service.TokenBlacklistService;
 import com.sky.service.UserService;
 import com.sky.utils.JwtUtil;
 import com.sky.vo.UserLoginVO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,17 +25,19 @@ import java.util.Map;
 @RequestMapping("/user/user")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+    private final JwtProperties jwtProperties;
+    private final CampusService campusService;
+    private final MerchantService merchantService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    @Autowired
-    private JwtProperties jwtProperties;
-
-    @Autowired
-    private CampusService campusService;
-
-    @Autowired
-    private MerchantService merchantService;
+    public UserController(UserService userService, JwtProperties jwtProperties, CampusService campusService, MerchantService merchantService, TokenBlacklistService tokenBlacklistService) {
+        this.userService = userService;
+        this.jwtProperties = jwtProperties;
+        this.campusService = campusService;
+        this.merchantService = merchantService;
+        this.tokenBlacklistService = tokenBlacklistService;
+    }
 
     @PostMapping("/login")
     public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO) {
@@ -71,5 +73,14 @@ public class UserController {
                 .deliveryFee(campus.getDeliveryFee())
                 .build();
         return Result.success(loginVO);
+    }
+
+    @PostMapping("/logout")
+    public Result<String> logout(jakarta.servlet.http.HttpServletRequest request) {
+        String token = request.getHeader(jwtProperties.getUserTokenName());
+        if (token != null && !token.isBlank()) {
+            tokenBlacklistService.addToBlacklist(token, "USER", "LOGOUT");
+        }
+        return Result.success();
     }
 }

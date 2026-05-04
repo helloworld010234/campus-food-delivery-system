@@ -9,6 +9,7 @@ import com.sky.entity.User;
 import com.sky.properties.JwtProperties;
 import com.sky.service.CampusService;
 import com.sky.service.MerchantService;
+import com.sky.service.TokenBlacklistService;
 import com.sky.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,10 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -48,6 +53,9 @@ class UserControllerTest {
 
     @MockitoBean
     private MerchantService merchantService;
+
+    @MockitoBean
+    private TokenBlacklistService tokenBlacklistService;
 
     @Test
     void login_shouldReturnUserLoginVOWithToken_whenCredentialsAreValid() throws Exception {
@@ -201,5 +209,27 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
                 .andExpect(jsonPath("$.data.id").value(3));
+    }
+
+    @Test
+    void logout_shouldAddTokenToBlacklist_andReturnSuccess() throws Exception {
+        when(jwtProperties.getUserTokenName()).thenReturn("token");
+        doNothing().when(tokenBlacklistService).addToBlacklist(eq("valid-user-token"), eq("USER"), eq("LOGOUT"));
+
+        mockMvc.perform(post("/user/user/logout")
+                        .header("token", "valid-user-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        verify(tokenBlacklistService).addToBlacklist("valid-user-token", "USER", "LOGOUT");
+    }
+
+    @Test
+    void logout_shouldReturnSuccess_whenNoTokenProvided() throws Exception {
+        mockMvc.perform(post("/user/user/logout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        verifyNoInteractions(tokenBlacklistService);
     }
 }

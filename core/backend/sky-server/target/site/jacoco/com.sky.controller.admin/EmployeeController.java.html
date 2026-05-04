@@ -9,9 +9,9 @@ import com.sky.properties.JwtProperties;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.EmployeeService;
+import com.sky.service.TokenBlacklistService;
 import com.sky.utils.JwtUtil;
 import com.sky.vo.EmployeeLoginVO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,65 +25,73 @@ import java.util.Map;
 
 @RestController
 @RequestMapping(&quot;/admin/employee&quot;)
-<span class="nc" id="L28">public class EmployeeController {</span>
+public class EmployeeController {
 
-    @Autowired
-    private EmployeeService employeeService;
+    private final EmployeeService employeeService;
+    private final JwtProperties jwtProperties;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    @Autowired
-    private JwtProperties jwtProperties;
+<span class="fc" id="L34">    public EmployeeController(EmployeeService employeeService, JwtProperties jwtProperties, TokenBlacklistService tokenBlacklistService) {</span>
+<span class="fc" id="L35">        this.employeeService = employeeService;</span>
+<span class="fc" id="L36">        this.jwtProperties = jwtProperties;</span>
+<span class="fc" id="L37">        this.tokenBlacklistService = tokenBlacklistService;</span>
+<span class="fc" id="L38">    }</span>
 
     @PostMapping(&quot;/login&quot;)
     public Result&lt;EmployeeLoginVO&gt; login(@RequestBody EmployeeLoginDTO employeeLoginDTO) {
-<span class="nc" id="L38">        Employee employee = employeeService.login(employeeLoginDTO);</span>
-<span class="nc" id="L39">        Map&lt;String, Object&gt; claims = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L40">        claims.put(JwtClaimsConstant.EMP_ID, employee.getId());</span>
-<span class="nc" id="L41">        claims.put(JwtClaimsConstant.MERCHANT_ID, employee.getMerchantId());</span>
-<span class="nc" id="L42">        claims.put(JwtClaimsConstant.ACCOUNT_TYPE, employee.getAccountType());</span>
-<span class="nc" id="L43">        String token = JwtUtil.createJWT(jwtProperties.getAdminSecretKey(), jwtProperties.getAdminTtl(), claims);</span>
+<span class="fc" id="L42">        Employee employee = employeeService.login(employeeLoginDTO);</span>
+<span class="fc" id="L43">        Map&lt;String, Object&gt; claims = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L44">        claims.put(JwtClaimsConstant.EMP_ID, employee.getId());</span>
+<span class="fc" id="L45">        claims.put(JwtClaimsConstant.MERCHANT_ID, employee.getMerchantId());</span>
+<span class="fc" id="L46">        claims.put(JwtClaimsConstant.ACCOUNT_TYPE, employee.getAccountType());</span>
+<span class="fc" id="L47">        String token = JwtUtil.createJWT(jwtProperties.getAdminSecretKey(), jwtProperties.getAdminTtl(), claims);</span>
 
-<span class="nc" id="L45">        EmployeeLoginVO loginVO = EmployeeLoginVO.builder()</span>
-<span class="nc" id="L46">                .id(employee.getId())</span>
-<span class="nc" id="L47">                .merchantId(employee.getMerchantId())</span>
-<span class="nc" id="L48">                .accountType(employee.getAccountType())</span>
-<span class="nc" id="L49">                .userName(employee.getUsername())</span>
-<span class="nc" id="L50">                .name(employee.getName())</span>
-<span class="nc" id="L51">                .token(token)</span>
-<span class="nc" id="L52">                .build();</span>
-<span class="nc" id="L53">        return Result.success(loginVO);</span>
+<span class="fc" id="L49">        EmployeeLoginVO loginVO = EmployeeLoginVO.builder()</span>
+<span class="fc" id="L50">                .id(employee.getId())</span>
+<span class="fc" id="L51">                .merchantId(employee.getMerchantId())</span>
+<span class="fc" id="L52">                .accountType(employee.getAccountType())</span>
+<span class="fc" id="L53">                .userName(employee.getUsername())</span>
+<span class="fc" id="L54">                .name(employee.getName())</span>
+<span class="fc" id="L55">                .token(token)</span>
+<span class="fc" id="L56">                .build();</span>
+<span class="fc" id="L57">        return Result.success(loginVO);</span>
     }
 
     @PostMapping(&quot;/logout&quot;)
-    public Result&lt;String&gt; logout() {
-<span class="nc" id="L58">        return Result.success();</span>
+    public Result&lt;String&gt; logout(jakarta.servlet.http.HttpServletRequest request) {
+<span class="fc" id="L62">        String token = request.getHeader(jwtProperties.getAdminTokenName());</span>
+<span class="pc bpc" id="L63" title="1 of 4 branches missed.">        if (token != null &amp;&amp; !token.isBlank()) {</span>
+<span class="fc" id="L64">            tokenBlacklistService.addToBlacklist(token, &quot;ADMIN&quot;, &quot;LOGOUT&quot;);</span>
+        }
+<span class="fc" id="L66">        return Result.success();</span>
     }
 
     @PostMapping
     public Result&lt;String&gt; save(@RequestBody EmployeeDTO employeeDTO) {
-<span class="nc" id="L63">        employeeService.save(employeeDTO);</span>
-<span class="nc" id="L64">        return Result.success();</span>
+<span class="fc" id="L71">        employeeService.save(employeeDTO);</span>
+<span class="fc" id="L72">        return Result.success();</span>
     }
 
     @GetMapping(&quot;/page&quot;)
     public Result&lt;PageResult&gt; page(EmployeePageQueryDTO employeePageQueryDTO) {
-<span class="nc" id="L69">        return Result.success(employeeService.pageQuery(employeePageQueryDTO));</span>
+<span class="fc" id="L77">        return Result.success(employeeService.pageQuery(employeePageQueryDTO));</span>
     }
 
     @PostMapping(&quot;/status/{status}&quot;)
     public Result&lt;String&gt; startOrStop(@PathVariable Integer status, Long id) {
-<span class="nc" id="L74">        employeeService.startOrStop(status, id);</span>
-<span class="nc" id="L75">        return Result.success();</span>
+<span class="nc" id="L82">        employeeService.startOrStop(status, id);</span>
+<span class="nc" id="L83">        return Result.success();</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
     public Result&lt;Employee&gt; getById(@PathVariable Long id) {
-<span class="nc" id="L80">        return Result.success(employeeService.getById(id));</span>
+<span class="nc" id="L88">        return Result.success(employeeService.getById(id));</span>
     }
 
     @PutMapping
     public Result&lt;String&gt; updateEmployeeData(@RequestBody EmployeeDTO employeeDTO) {
-<span class="nc" id="L85">        employeeService.updateEmployeeData(employeeDTO);</span>
-<span class="nc" id="L86">        return Result.success();</span>
+<span class="nc" id="L93">        employeeService.updateEmployeeData(employeeDTO);</span>
+<span class="nc" id="L94">        return Result.success();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

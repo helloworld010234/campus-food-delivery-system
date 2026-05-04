@@ -9,9 +9,9 @@ import com.sky.properties.JwtProperties;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.EmployeeService;
+import com.sky.service.TokenBlacklistService;
 import com.sky.utils.JwtUtil;
 import com.sky.vo.EmployeeLoginVO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,11 +27,15 @@ import java.util.Map;
 @RequestMapping("/admin/employee")
 public class EmployeeController {
 
-    @Autowired
-    private EmployeeService employeeService;
+    private final EmployeeService employeeService;
+    private final JwtProperties jwtProperties;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    @Autowired
-    private JwtProperties jwtProperties;
+    public EmployeeController(EmployeeService employeeService, JwtProperties jwtProperties, TokenBlacklistService tokenBlacklistService) {
+        this.employeeService = employeeService;
+        this.jwtProperties = jwtProperties;
+        this.tokenBlacklistService = tokenBlacklistService;
+    }
 
     @PostMapping("/login")
     public Result<EmployeeLoginVO> login(@RequestBody EmployeeLoginDTO employeeLoginDTO) {
@@ -54,7 +58,11 @@ public class EmployeeController {
     }
 
     @PostMapping("/logout")
-    public Result<String> logout() {
+    public Result<String> logout(jakarta.servlet.http.HttpServletRequest request) {
+        String token = request.getHeader(jwtProperties.getAdminTokenName());
+        if (token != null && !token.isBlank()) {
+            tokenBlacklistService.addToBlacklist(token, "ADMIN", "LOGOUT");
+        }
         return Result.success();
     }
 

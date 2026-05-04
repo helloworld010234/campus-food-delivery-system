@@ -8,6 +8,7 @@ import com.sky.entity.Employee;
 import com.sky.properties.JwtProperties;
 import com.sky.result.PageResult;
 import com.sky.service.EmployeeService;
+import com.sky.service.TokenBlacklistService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -18,8 +19,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,6 +44,9 @@ class EmployeeControllerTest {
 
     @MockitoBean
     private JwtProperties jwtProperties;
+
+    @MockitoBean
+    private TokenBlacklistService tokenBlacklistService;
 
     @Test
     void login_shouldReturnEmployeeLoginVOWithToken_whenCredentialsAreValid() throws Exception {
@@ -179,5 +186,27 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.data.total").value(0))
                 .andExpect(jsonPath("$.data.records").isArray())
                 .andExpect(jsonPath("$.data.records").isEmpty());
+    }
+
+    @Test
+    void logout_shouldAddTokenToBlacklist_andReturnSuccess() throws Exception {
+        when(jwtProperties.getAdminTokenName()).thenReturn("token");
+        doNothing().when(tokenBlacklistService).addToBlacklist(eq("valid-admin-token"), eq("ADMIN"), eq("LOGOUT"));
+
+        mockMvc.perform(post("/admin/employee/logout")
+                        .header("token", "valid-admin-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        verify(tokenBlacklistService).addToBlacklist("valid-admin-token", "ADMIN", "LOGOUT");
+    }
+
+    @Test
+    void logout_shouldReturnSuccess_whenNoTokenProvided() throws Exception {
+        mockMvc.perform(post("/admin/employee/logout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        verifyNoInteractions(tokenBlacklistService);
     }
 }
