@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AutoFillAspect.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.aspect</a> &gt; <span class="el_source">AutoFillAspect.java</span></div><h1>AutoFillAspect.java</h1><pre class="source lang-java linenums">package com.sky.aspect;
+
+/**
+ * @author Mark
+ * @date 2024/2/10
+ */
+
+import com.sky.anotation.AutoFill;
+import com.sky.constant.AutoFillConstant;
+import com.sky.context.BaseContext;
+import com.sky.enumeration.OperationType;
+import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.Signature;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.stereotype.Component;
+
+import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+
+/**
+ * 自定义切面，填充公共字段，减少重复代码
+ */
+@Aspect
+@Component
+<span class="nc" id="L29">@Slf4j</span>
+<span class="nc" id="L30">public class  AutoFillAspect {</span>
+    /**
+     * 切入点
+     */
+   @Pointcut(&quot;execution(* com.sky.mapper.*.*(..)) &amp;&amp; @annotation(com.sky.anotation.AutoFill)&quot;)
+<span class="nc" id="L35">   public void autoFillPointCut(){}</span>
+
+    /**
+     * 前置通知
+     * @param point
+     */
+    @Before(&quot;autoFillPointCut()&quot;)
+    public void autoFill(JoinPoint point){
+<span class="nc" id="L43">       log.info(&quot;公共字段开始填充&quot;);</span>
+        // 方法签名
+<span class="nc" id="L45">        MethodSignature signature = (MethodSignature) point.getSignature();</span>
+        // 获取方法上的注解对象
+<span class="nc" id="L47">        AutoFill annotation = signature.getMethod().getAnnotation(AutoFill.class);//通过反射获取注解信息</span>
+        // 获取数据库操作类型
+<span class="nc" id="L49">        OperationType type = annotation.value();</span>
+        // 实体对象
+<span class="nc" id="L51">        Object[] args = point.getArgs();</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">        if (args == null || args.length == 0){</span>
+<span class="nc" id="L53">            return;</span>
+        }
+<span class="nc" id="L55">        Object arg = args[0];</span>
+
+<span class="nc" id="L57">        LocalDateTime localDateTime = LocalDateTime.now();</span>
+<span class="nc" id="L58">        Long currentId = BaseContext.getCurrentId();</span>
+
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (type == OperationType.INSERT){</span>
+            try {
+<span class="nc" id="L62">                Method createTime = arg.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_TIME, LocalDateTime.class);</span>
+<span class="nc" id="L63">                Method createUser = arg.getClass().getDeclaredMethod(AutoFillConstant.SET_CREATE_USER, Long.class);</span>
+<span class="nc" id="L64">                Method updateTime = arg.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_TIME, LocalDateTime.class);</span>
+<span class="nc" id="L65">                Method updateUser = arg.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_USER, Long.class);</span>
+
+<span class="nc" id="L67">                createTime.invoke(arg, localDateTime);</span>
+<span class="nc" id="L68">                createUser.invoke(arg, currentId);</span>
+<span class="nc" id="L69">                updateTime.invoke(arg, localDateTime);</span>
+<span class="nc" id="L70">                updateUser.invoke(arg, currentId);</span>
+            }
+<span class="nc" id="L72">            catch (Exception e) {</span>
+<span class="nc" id="L73">                throw new RuntimeException(e);</span>
+<span class="nc" id="L74">            }</span>
+        }
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        else if (type == OperationType.UPDATE) {</span>
+            try {
+<span class="nc" id="L78">                Method updateTime = arg.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_TIME, LocalDateTime.class);</span>
+<span class="nc" id="L79">                Method updateUser = arg.getClass().getDeclaredMethod(AutoFillConstant.SET_UPDATE_USER, Long.class);</span>
+
+<span class="nc" id="L81">                updateTime.invoke(arg, localDateTime);</span>
+<span class="nc" id="L82">                updateUser.invoke(arg, currentId);</span>
+<span class="nc" id="L83">            }catch (Exception exception){</span>
+<span class="nc" id="L84">                throw new RuntimeException(exception);</span>
+<span class="nc" id="L85">            }</span>
+        }
+<span class="nc" id="L87">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

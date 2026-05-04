@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CategoryServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.service.impl</a> &gt; <span class="el_source">CategoryServiceImpl.java</span></div><h1>CategoryServiceImpl.java</h1><pre class="source lang-java linenums">package com.sky.service.impl;
+
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.sky.constant.StatusConstant;
+import com.sky.dto.CategoryDTO;
+import com.sky.dto.CategoryPageQueryDTO;
+import com.sky.entity.Category;
+import com.sky.exception.BaseException;
+import com.sky.mapper.CategoryMapper;
+import com.sky.mapper.DishMapper;
+import com.sky.mapper.SetmealMapper;
+import com.sky.result.PageResult;
+import com.sky.service.CategoryService;
+import com.sky.support.MultiMerchantSchemaSupport;
+import com.sky.utils.MerchantScopeUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+<span class="nc" id="L24">public class CategoryServiceImpl implements CategoryService {</span>
+
+    @Autowired
+    private CategoryMapper categoryMapper;
+
+    @Autowired
+    private DishMapper dishMapper;
+
+    @Autowired
+    private SetmealMapper setmealMapper;
+
+    @Autowired
+    private MultiMerchantSchemaSupport schemaSupport;
+
+    @Override
+    public void save(CategoryDTO categoryDTO) {
+<span class="nc" id="L40">        Category category = new Category();</span>
+<span class="nc" id="L41">        BeanUtils.copyProperties(categoryDTO, category);</span>
+<span class="nc" id="L42">        category.setStatus(StatusConstant.DISABLE);</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        if (schemaSupport.supportsCategoryScope()) {</span>
+<span class="nc" id="L44">            category.setMerchantId(MerchantScopeUtils.resolveRequiredMerchantId(categoryDTO.getMerchantId()));</span>
+<span class="nc" id="L45">            categoryMapper.insert(category);</span>
+<span class="nc" id="L46">            return;</span>
+        }
+<span class="nc" id="L48">        category.setMerchantId(null);</span>
+<span class="nc" id="L49">        categoryMapper.insertLegacy(category);</span>
+<span class="nc" id="L50">    }</span>
+
+    @Override
+    public PageResult pageQuery(CategoryPageQueryDTO categoryPageQueryDTO) {
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (schemaSupport.supportsCategoryScope()) {</span>
+<span class="nc" id="L55">            categoryPageQueryDTO.setMerchantId(MerchantScopeUtils.resolveQueryMerchantId(categoryPageQueryDTO.getMerchantId()));</span>
+        } else {
+<span class="nc" id="L57">            categoryPageQueryDTO.setMerchantId(null);</span>
+        }
+<span class="nc" id="L59">        PageHelper.startPage(categoryPageQueryDTO.getPage(), categoryPageQueryDTO.getPageSize());</span>
+<span class="nc" id="L60">        Page&lt;Category&gt; page = categoryMapper.pageQuery(categoryPageQueryDTO);</span>
+<span class="nc" id="L61">        return new PageResult(page.getTotal(), page.getResult());</span>
+    }
+
+    @Override
+    public void deleteById(Long id) {
+<span class="nc" id="L66">        Category category = getAccessibleCategory(id);</span>
+<span class="nc" id="L67">        Integer dishCount = dishMapper.countByCategoryId(category.getId());</span>
+<span class="nc bnc" id="L68" title="All 4 branches missed.">        if (dishCount != null &amp;&amp; dishCount &gt; 0) {</span>
+<span class="nc" id="L69">            throw new BaseException(&quot;褰撳墠鍒嗙被鍏宠仈浜嗚彍鍝侊紝涓嶈兘鍒犻櫎&quot;);</span>
+        }
+
+<span class="nc" id="L72">        Integer setmealCount = setmealMapper.countByCategoryId(category.getId());</span>
+<span class="nc bnc" id="L73" title="All 4 branches missed.">        if (setmealCount != null &amp;&amp; setmealCount &gt; 0) {</span>
+<span class="nc" id="L74">            throw new BaseException(&quot;褰撳墠鍒嗙被鍏宠仈浜嗗椁愶紝涓嶈兘鍒犻櫎&quot;);</span>
+        }
+
+<span class="nc" id="L77">        categoryMapper.deleteById(category.getId());</span>
+<span class="nc" id="L78">    }</span>
+
+    @Override
+    public void update(CategoryDTO categoryDTO) {
+<span class="nc" id="L82">        Category category = getAccessibleCategory(categoryDTO.getId());</span>
+<span class="nc" id="L83">        Category toUpdate = new Category();</span>
+<span class="nc" id="L84">        BeanUtils.copyProperties(categoryDTO, toUpdate);</span>
+<span class="nc" id="L85">        toUpdate.setId(category.getId());</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (schemaSupport.supportsCategoryScope()) {</span>
+<span class="nc" id="L87">            Long merchantId = MerchantScopeUtils.resolveQueryMerchantId(categoryDTO.getMerchantId());</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">            toUpdate.setMerchantId(merchantId == null ? category.getMerchantId() : merchantId);</span>
+<span class="nc" id="L89">        } else {</span>
+<span class="nc" id="L90">            toUpdate.setMerchantId(null);</span>
+        }
+<span class="nc" id="L92">        categoryMapper.update(toUpdate);</span>
+<span class="nc" id="L93">    }</span>
+
+    @Override
+    public void startOrStop(Integer status, Long id) {
+<span class="nc" id="L97">        Category category = getAccessibleCategory(id);</span>
+<span class="nc" id="L98">        categoryMapper.update(Category.builder()</span>
+<span class="nc" id="L99">                .id(category.getId())</span>
+<span class="nc" id="L100">                .status(status)</span>
+<span class="nc" id="L101">                .build());</span>
+<span class="nc" id="L102">    }</span>
+
+    @Override
+    public List&lt;Category&gt; list(Integer type, Long merchantId) {
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        Long resolvedMerchantId = schemaSupport.supportsCategoryScope()</span>
+<span class="nc" id="L107">                ? MerchantScopeUtils.resolveQueryMerchantId(merchantId)</span>
+<span class="nc" id="L108">                : null;</span>
+<span class="nc" id="L109">        return categoryMapper.list(type, resolvedMerchantId);</span>
+    }
+
+    private Category getAccessibleCategory(Long id) {
+<span class="nc" id="L113">        Category category = categoryMapper.getById(id);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (category == null) {</span>
+<span class="nc" id="L115">            throw new BaseException(&quot;鍒嗙被涓嶅瓨鍦?&quot;);</span>
+        }
+<span class="nc" id="L117">        MerchantScopeUtils.assertAccessible(category.getMerchantId());</span>
+<span class="nc" id="L118">        return category;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

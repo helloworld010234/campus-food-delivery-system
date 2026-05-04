@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AddressBookController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.controller.user</a> &gt; <span class="el_source">AddressBookController.java</span></div><h1>AddressBookController.java</h1><pre class="source lang-java linenums">package com.sky.controller.user;
+
+import com.sky.context.BaseContext;
+import com.sky.entity.AddressBook;
+import com.sky.result.Result;
+import com.sky.service.AddressBookService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/user/addressBook&quot;)
+@Api(tags = &quot;C端地址簿接口&quot;)
+<span class="nc" id="L16">public class AddressBookController {</span>
+
+    @Autowired
+    private AddressBookService addressBookService;
+
+    /**
+     * 查询当前登录用户的所有地址信息
+     *
+     * @return
+     */
+    @GetMapping(&quot;/list&quot;)
+    @ApiOperation(&quot;查询当前登录用户的所有地址信息&quot;)
+    public Result&lt;List&lt;AddressBook&gt;&gt; list() {
+<span class="nc" id="L29">        AddressBook addressBook = new AddressBook();</span>
+<span class="nc" id="L30">        addressBook.setUserId(BaseContext.getCurrentId());</span>
+<span class="nc" id="L31">        List&lt;AddressBook&gt; list = addressBookService.list(addressBook);</span>
+<span class="nc" id="L32">        return Result.success(list);</span>
+    }
+
+    /**
+     * 新增地址
+     *
+     * @param addressBook
+     * @return
+     */
+    @PostMapping
+    @ApiOperation(&quot;新增地址&quot;)
+    public Result save(@RequestBody AddressBook addressBook) {
+<span class="nc" id="L44">        addressBookService.save(addressBook);</span>
+<span class="nc" id="L45">        return Result.success();</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @ApiOperation(&quot;根据id查询地址&quot;)
+    public Result&lt;AddressBook&gt; getById(@PathVariable Long id) {
+<span class="nc" id="L51">        AddressBook addressBook = addressBookService.getById(id);</span>
+<span class="nc" id="L52">        return Result.success(addressBook);</span>
+    }
+
+    /**
+     * 根据id修改地址
+     *
+     * @param addressBook
+     * @return
+     */
+    @PutMapping
+    @ApiOperation(&quot;根据id修改地址&quot;)
+    public Result update(@RequestBody AddressBook addressBook) {
+<span class="nc" id="L64">        addressBookService.update(addressBook);</span>
+<span class="nc" id="L65">        return Result.success();</span>
+    }
+
+    /**
+     * 设置默认地址
+     *
+     * @param addressBook
+     * @return
+     */
+    @PutMapping(&quot;/default&quot;)
+    @ApiOperation(&quot;设置默认地址&quot;)
+    public Result setDefault(@RequestBody AddressBook addressBook) {
+<span class="nc" id="L77">        addressBookService.setDefault(addressBook);</span>
+<span class="nc" id="L78">        return Result.success();</span>
+    }
+
+    /**
+     * 根据id删除地址
+     *
+     * @param id
+     * @return
+     */
+    @DeleteMapping
+    @ApiOperation(&quot;根据id删除地址&quot;)
+    public Result deleteById(Long id) {
+<span class="nc" id="L90">        addressBookService.deleteById(id);</span>
+<span class="nc" id="L91">        return Result.success();</span>
+    }
+
+    /**
+     * 查询默认地址
+     */
+    @GetMapping(&quot;default&quot;)
+    @ApiOperation(&quot;查询默认地址&quot;)
+    public Result&lt;AddressBook&gt; getDefault() {
+        //SQL:select * from address_book where user_id = ? and is_default = 1
+<span class="nc" id="L101">        AddressBook addressBook = new AddressBook();</span>
+<span class="nc" id="L102">        addressBook.setIsDefault(1);</span>
+<span class="nc" id="L103">        addressBook.setUserId(BaseContext.getCurrentId());</span>
+<span class="nc" id="L104">        List&lt;AddressBook&gt; list = addressBookService.list(addressBook);</span>
+
+<span class="nc bnc" id="L106" title="All 4 branches missed.">        if (list != null &amp;&amp; list.size() == 1) {</span>
+<span class="nc" id="L107">            return Result.success(list.get(0));</span>
+        }
+
+<span class="nc" id="L110">        return Result.error(&quot;没有查询到默认地址&quot;);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,4 +1,6 @@
 com\sky\controller\OpenCommonController.class
+com\sky\service\impl\TokenBlacklistServiceImpl.class
+com\sky\websocket\WebSocketAuthConfigurator.class
 com\sky\service\impl\SetMealDishServiceImpl.class
 com\sky\controller\user\ShoppingCartController.class
 com\sky\config\WebMvcConfiguration.class
@@ -35,10 +37,12 @@ com\sky\config\WebSocketConfiguration.class
 com\sky\service\AddressBookService.class
 com\sky\service\impl\OrderDetailServiceImpl.class
 com\sky\controller\user\DishController.class
+com\sky\service\TokenBlacklistService.class
 com\sky\mapper\CategoryMapper.class
 com\sky\utils\MerchantScopeUtils.class
 com\sky\service\UserService.class
 com\sky\controller\admin\MerchantController.class
+com\sky\mapper\TokenBlacklistMapper.class
 com\sky\service\impl\EmployeeServiceImpl.class
 com\sky\service\OrderDetailService.class
 com\sky\service\SetmealService.class

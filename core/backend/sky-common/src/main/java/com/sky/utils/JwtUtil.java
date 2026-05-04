@@ -49,4 +49,17 @@ public class JwtUtil {
                 .getPayload();
     }
 
+    /**
+     * 获取token过期时间
+     */
+    public static Date getExpirationDate(String secretKey, String token) {
+        SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getExpiration();
+    }
+
 }

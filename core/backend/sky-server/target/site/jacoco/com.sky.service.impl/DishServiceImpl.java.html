@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DishServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.service.impl</a> &gt; <span class="el_source">DishServiceImpl.java</span></div><h1>DishServiceImpl.java</h1><pre class="source lang-java linenums">package com.sky.service.impl;
+
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.sky.constant.StatusConstant;
+import com.sky.dto.DishDTO;
+import com.sky.dto.DishPageQueryDTO;
+import com.sky.entity.Category;
+import com.sky.entity.Dish;
+import com.sky.entity.DishFlavor;
+import com.sky.entity.SetmealDish;
+import com.sky.exception.BaseException;
+import com.sky.mapper.CategoryMapper;
+import com.sky.mapper.DishFlavorMapper;
+import com.sky.mapper.DishMapper;
+import com.sky.mapper.SetmealDishMapper;
+import com.sky.result.PageResult;
+import com.sky.service.DishService;
+import com.sky.support.MultiMerchantSchemaSupport;
+import com.sky.utils.MerchantScopeUtils;
+import com.sky.utils.StorefrontImageResolver;
+import com.sky.vo.DishVO;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+<span class="nc" id="L32">public class DishServiceImpl implements DishService {</span>
+
+    @Autowired
+    private DishMapper dishMapper;
+
+    @Autowired
+    private SetmealDishMapper setMealDishMapper;
+
+    @Autowired
+    private DishFlavorMapper dishFlavorMapper;
+
+    @Autowired
+    private CategoryMapper categoryMapper;
+
+    @Autowired
+    private StorefrontImageResolver storefrontImageResolver;
+
+    @Autowired
+    private MultiMerchantSchemaSupport schemaSupport;
+
+    @Override
+    @Transactional
+    public void saveWithFlavor(DishDTO dishDTO) {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        Long merchantId = schemaSupport.supportsDishScope()</span>
+<span class="nc" id="L56">                ? MerchantScopeUtils.resolveRequiredMerchantId(dishDTO.getMerchantId())</span>
+<span class="nc" id="L57">                : null;</span>
+<span class="nc" id="L58">        validateCategoryOwnership(dishDTO.getCategoryId(), merchantId);</span>
+
+<span class="nc" id="L60">        Dish dish = new Dish();</span>
+<span class="nc" id="L61">        BeanUtils.copyProperties(dishDTO, dish);</span>
+<span class="nc" id="L62">        dish.setMerchantId(merchantId);</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (schemaSupport.supportsDishScope()) {</span>
+<span class="nc" id="L64">            dishMapper.insert(dish);</span>
+        } else {
+<span class="nc" id="L66">            dishMapper.insertLegacy(dish);</span>
+        }
+
+<span class="nc" id="L69">        List&lt;DishFlavor&gt; flavors = dishDTO.getFlavors();</span>
+<span class="nc bnc" id="L70" title="All 4 branches missed.">        if (flavors != null &amp;&amp; !flavors.isEmpty()) {</span>
+<span class="nc" id="L71">            flavors.forEach(item -&gt; item.setDishId(dish.getId()));</span>
+<span class="nc" id="L72">            dishMapper.insertBatch(flavors);</span>
+        }
+<span class="nc" id="L74">    }</span>
+
+    @Override
+    public PageResult page(DishPageQueryDTO queryDTO) {
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (schemaSupport.supportsDishScope()) {</span>
+<span class="nc" id="L79">            queryDTO.setMerchantId(MerchantScopeUtils.resolveQueryMerchantId(queryDTO.getMerchantId()));</span>
+        } else {
+<span class="nc" id="L81">            queryDTO.setMerchantId(null);</span>
+        }
+<span class="nc" id="L83">        PageHelper.startPage(queryDTO.getPage(), queryDTO.getPageSize());</span>
+<span class="nc" id="L84">        Page&lt;DishVO&gt; page = dishMapper.pageQuery(queryDTO);</span>
+<span class="nc" id="L85">        List&lt;DishVO&gt; records = page.getResult();</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (records != null) {</span>
+<span class="nc" id="L87">            records.forEach(this::fillDisplayImage);</span>
+        }
+<span class="nc" id="L89">        return new PageResult(page.getTotal(), records);</span>
+    }
+
+    @Override
+    @Transactional
+    public void deleteBatch(List&lt;Long&gt; ids) {
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        for (Long id : ids) {</span>
+<span class="nc" id="L96">            Dish dish = getAccessibleDish(id);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            if (StatusConstant.ENABLE.equals(dish.getStatus())) {</span>
+<span class="nc" id="L98">                throw new BaseException(&quot;璧峰敭涓殑鑿滃搧涓嶈兘鍒犻櫎&quot;);</span>
+            }
+<span class="nc" id="L100">        }</span>
+
+<span class="nc" id="L102">        List&lt;SetmealDish&gt; setmealIds = setMealDishMapper.getSetmealsByDishIds(ids);</span>
+<span class="nc bnc" id="L103" title="All 4 branches missed.">        if (setmealIds != null &amp;&amp; !setmealIds.isEmpty()) {</span>
+<span class="nc" id="L104">            throw new BaseException(&quot;褰撳墠鑿滃搧鍏宠仈浜嗗椁愶紝涓嶈兘鍒犻櫎&quot;);</span>
+        }
+
+<span class="nc" id="L107">        dishMapper.deleteBatch(ids);</span>
+<span class="nc" id="L108">        dishFlavorMapper.deleteBatch(ids);</span>
+<span class="nc" id="L109">    }</span>
+
+    @Override
+    public void startOrStop(Integer status, Long id) {
+<span class="nc" id="L113">        Dish dish = getAccessibleDish(id);</span>
+<span class="nc" id="L114">        dishMapper.update(Dish.builder().id(dish.getId()).status(status).build());</span>
+<span class="nc" id="L115">    }</span>
+
+    @Override
+    @Transactional
+    public DishVO getByIdWithFlavor(Long id) {
+<span class="nc" id="L120">        Dish dish = getAccessibleDish(id);</span>
+<span class="nc" id="L121">        List&lt;DishFlavor&gt; flavors = dishFlavorMapper.getByDishId(id);</span>
+<span class="nc" id="L122">        DishVO dishVO = new DishVO();</span>
+<span class="nc" id="L123">        BeanUtils.copyProperties(dish, dishVO);</span>
+<span class="nc" id="L124">        dishVO.setFlavors(flavors);</span>
+<span class="nc" id="L125">        fillDisplayImage(dishVO);</span>
+<span class="nc" id="L126">        return dishVO;</span>
+    }
+
+    @Override
+    @Transactional
+    public void updateWithFlavor(DishDTO dishDTO) {
+<span class="nc" id="L132">        Dish existing = getAccessibleDish(dishDTO.getId());</span>
+<span class="nc" id="L133">        Long merchantId = null;</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (schemaSupport.supportsDishScope()) {</span>
+<span class="nc" id="L135">            merchantId = MerchantScopeUtils.resolveQueryMerchantId(dishDTO.getMerchantId());</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            if (merchantId == null) {</span>
+<span class="nc" id="L137">                merchantId = existing.getMerchantId();</span>
+            }
+        }
+<span class="nc" id="L140">        validateCategoryOwnership(dishDTO.getCategoryId(), merchantId);</span>
+
+<span class="nc" id="L142">        Dish dish = new Dish();</span>
+<span class="nc" id="L143">        BeanUtils.copyProperties(dishDTO, dish);</span>
+<span class="nc" id="L144">        dish.setId(existing.getId());</span>
+<span class="nc" id="L145">        dish.setMerchantId(merchantId);</span>
+<span class="nc" id="L146">        dishMapper.update(dish);</span>
+<span class="nc" id="L147">        dishFlavorMapper.deleteById(dishDTO.getId());</span>
+
+<span class="nc" id="L149">        List&lt;DishFlavor&gt; flavors = dishDTO.getFlavors();</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">        if (flavors != null &amp;&amp; !flavors.isEmpty()) {</span>
+<span class="nc" id="L151">            flavors.forEach(item -&gt; item.setDishId(dishDTO.getId()));</span>
+<span class="nc" id="L152">            dishMapper.insertBatch(flavors);</span>
+        }
+<span class="nc" id="L154">    }</span>
+
+    @Override
+    public List&lt;Dish&gt; list(Long categoryId) {
+<span class="nc" id="L158">        Dish dish = Dish.builder()</span>
+<span class="nc" id="L159">                .categoryId(categoryId)</span>
+<span class="nc" id="L160">                .status(StatusConstant.ENABLE)</span>
+<span class="nc" id="L161">                .build();</span>
+
+<span class="nc" id="L163">        Category category = categoryMapper.getById(categoryId);</span>
+<span class="nc bnc" id="L164" title="All 4 branches missed.">        if (category != null &amp;&amp; schemaSupport.supportsDishScope()) {</span>
+<span class="nc" id="L165">            MerchantScopeUtils.assertAccessible(category.getMerchantId());</span>
+<span class="nc" id="L166">            dish.setMerchantId(category.getMerchantId());</span>
+        } else {
+<span class="nc" id="L168">            dish.setMerchantId(null);</span>
+        }
+<span class="nc" id="L170">        return dishMapper.list(dish);</span>
+    }
+
+    @Override
+    public List&lt;DishVO&gt; listWithFlavor(Dish dish) {
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        if (schemaSupport.supportsDishScope()) {</span>
+<span class="nc" id="L176">            dish.setMerchantId(MerchantScopeUtils.resolveQueryMerchantId(dish.getMerchantId()));</span>
+        } else {
+<span class="nc" id="L178">            dish.setMerchantId(null);</span>
+        }
+<span class="nc" id="L180">        List&lt;Dish&gt; dishList = dishMapper.list(dish);</span>
+<span class="nc" id="L181">        List&lt;DishVO&gt; dishVOList = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        for (Dish item : dishList) {</span>
+<span class="nc" id="L184">            DishVO dishVO = new DishVO();</span>
+<span class="nc" id="L185">            BeanUtils.copyProperties(item, dishVO);</span>
+<span class="nc" id="L186">            dishVO.setFlavors(dishFlavorMapper.getByDishId(item.getId()));</span>
+<span class="nc" id="L187">            fillDisplayImage(dishVO);</span>
+<span class="nc" id="L188">            dishVOList.add(dishVO);</span>
+<span class="nc" id="L189">        }</span>
+<span class="nc" id="L190">        return dishVOList;</span>
+    }
+
+    private Dish getAccessibleDish(Long id) {
+<span class="nc" id="L194">        Dish dish = dishMapper.getById(id);</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        if (dish == null) {</span>
+<span class="nc" id="L196">            throw new BaseException(&quot;鑿滃搧涓嶅瓨鍦?&quot;);</span>
+        }
+<span class="nc" id="L198">        MerchantScopeUtils.assertAccessible(dish.getMerchantId());</span>
+<span class="nc" id="L199">        return dish;</span>
+    }
+
+    private void validateCategoryOwnership(Long categoryId, Long merchantId) {
+<span class="nc bnc" id="L203" title="All 4 branches missed.">        if (categoryId == null || !schemaSupport.supportsCategoryScope()) {</span>
+<span class="nc" id="L204">            return;</span>
+        }
+<span class="nc" id="L206">        Category category = categoryMapper.getById(categoryId);</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (category == null) {</span>
+<span class="nc" id="L208">            throw new BaseException(&quot;鍒嗙被涓嶅瓨鍦?&quot;);</span>
+        }
+<span class="nc bnc" id="L210" title="All 6 branches missed.">        if (merchantId != null &amp;&amp; category.getMerchantId() != null &amp;&amp; !merchantId.equals(category.getMerchantId())) {</span>
+<span class="nc" id="L211">            throw new BaseException(&quot;鍒嗙被涓嶅睘浜庡綋鍓嶅晢鎴?&quot;);</span>
+        }
+<span class="nc" id="L213">    }</span>
+
+    private void fillDisplayImage(DishVO dishVO) {
+<span class="nc" id="L216">        dishVO.setImage(storefrontImageResolver.resolve(dishVO.getImage()));</span>
+<span class="nc" id="L217">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

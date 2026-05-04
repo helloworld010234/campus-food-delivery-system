@@ -40,6 +40,7 @@ com\sky\entity\SetmealDish$SetmealDishBuilder.class
 com\sky\vo\DishVO.class
 com\sky\entity\Dish$DishBuilder.class
 com\sky\vo\UserLoginVO.class
+com\sky\entity\TokenBlacklist.class
 com\sky\vo\OrderOverViewVO.class
 com\sky\vo\TurnoverReportVO$TurnoverReportVOBuilder.class
 com\sky\entity\Setmeal$SetmealBuilder.class
@@ -65,6 +66,7 @@ com\sky\dto\OrdersPageQueryDTO.class
 com\sky\vo\UserReportVO$UserReportVOBuilder.class
 com\sky\vo\OrderOverViewVO$OrderOverViewVOBuilder.class
 com\sky\vo\OrderReportVO.class
+com\sky\entity\TokenBlacklist$TokenBlacklistBuilder.class
 com\sky\vo\BusinessDataVO$BusinessDataVOBuilder.class
 com\sky\entity\OrderDetail.class
 com\sky\entity\AddressBook.class

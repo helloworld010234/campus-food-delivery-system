@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmployeeServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.service.impl</a> &gt; <span class="el_source">EmployeeServiceImpl.java</span></div><h1>EmployeeServiceImpl.java</h1><pre class="source lang-java linenums">package com.sky.service.impl;
+
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.sky.constant.AccountTypeConstant;
+import com.sky.constant.PasswordConstant;
+import com.sky.constant.StatusConstant;
+import com.sky.context.BaseContext;
+import com.sky.dto.EmployeeDTO;
+import com.sky.dto.EmployeeLoginDTO;
+import com.sky.dto.EmployeePageQueryDTO;
+import com.sky.entity.Employee;
+import com.sky.exception.AccountLockedException;
+import com.sky.exception.AccountNotFoundException;
+import com.sky.exception.BaseException;
+import com.sky.exception.PasswordErrorException;
+import com.sky.mapper.EmployeeMapper;
+import com.sky.result.PageResult;
+import com.sky.service.EmployeeService;
+import com.sky.support.MultiMerchantSchemaSupport;
+import com.sky.utils.MerchantScopeUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
+
+import java.util.List;
+
+@Service
+<span class="nc" id="L30">public class EmployeeServiceImpl implements EmployeeService {</span>
+
+    @Autowired
+    private EmployeeMapper employeeMapper;
+
+    @Autowired
+    private MultiMerchantSchemaSupport schemaSupport;
+
+    @Override
+    public Employee login(EmployeeLoginDTO employeeLoginDTO) {
+<span class="nc" id="L40">        Employee employee = employeeMapper.getByUsername(employeeLoginDTO.getUsername());</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        if (employee == null) {</span>
+<span class="nc" id="L42">            throw new AccountNotFoundException(&quot;璐﹀彿涓嶅瓨鍦?&quot;);</span>
+        }
+
+<span class="nc" id="L45">        String password = DigestUtils.md5DigestAsHex(employeeLoginDTO.getPassword().getBytes());</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (!password.equals(employee.getPassword())) {</span>
+<span class="nc" id="L47">            throw new PasswordErrorException(&quot;瀵嗙爜閿欒&quot;);</span>
+        }
+
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (StatusConstant.DISABLE.equals(employee.getStatus())) {</span>
+<span class="nc" id="L51">            throw new AccountLockedException(&quot;璐﹀彿琚攣瀹?&quot;);</span>
+        }
+<span class="nc" id="L53">        normalizeAccountScope(employee);</span>
+<span class="nc" id="L54">        return employee;</span>
+    }
+
+    @Override
+    public void save(EmployeeDTO employeeDTO) {
+<span class="nc" id="L59">        Employee employee = new Employee();</span>
+<span class="nc" id="L60">        BeanUtils.copyProperties(employeeDTO, employee);</span>
+
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (!schemaSupport.supportsEmployeeScope()) {</span>
+<span class="nc" id="L63">            employee.setMerchantId(null);</span>
+<span class="nc" id="L64">            employee.setAccountType(AccountTypeConstant.PLATFORM_ADMIN);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        } else if (MerchantScopeUtils.isMerchantAccount()) {</span>
+<span class="nc" id="L66">            employee.setMerchantId(BaseContext.getCurrentMerchantId());</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">            if (employee.getAccountType() == null || AccountTypeConstant.PLATFORM_ADMIN.equals(employee.getAccountType())) {</span>
+<span class="nc" id="L68">                employee.setAccountType(AccountTypeConstant.MERCHANT_STAFF);</span>
+            }
+        } else {
+<span class="nc bnc" id="L71" title="All 2 branches missed.">            if (employee.getAccountType() == null) {</span>
+<span class="nc" id="L72">                employee.setAccountType(AccountTypeConstant.PLATFORM_ADMIN);</span>
+            }
+<span class="nc bnc" id="L74" title="All 4 branches missed.">            if (!AccountTypeConstant.PLATFORM_ADMIN.equals(employee.getAccountType()) &amp;&amp; employee.getMerchantId() == null) {</span>
+<span class="nc" id="L75">                throw new BaseException(&quot;鍟嗘埛璐﹀彿蹇呴』缁戝畾鍟嗘埛&quot;);</span>
+            }
+        }
+
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        if (employee.getStatus() == null) {</span>
+<span class="nc" id="L80">            employee.setStatus(StatusConstant.ENABLE);</span>
+        }
+<span class="nc" id="L82">        employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()));</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (schemaSupport.supportsEmployeeScope()) {</span>
+<span class="nc" id="L84">            employeeMapper.insert(employee);</span>
+        } else {
+<span class="nc" id="L86">            employeeMapper.insertLegacy(employee);</span>
+        }
+<span class="nc" id="L88">    }</span>
+
+    @Override
+    public PageResult pageQuery(EmployeePageQueryDTO pageQueryDTO) {
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (!schemaSupport.supportsEmployeeScope()) {</span>
+<span class="nc" id="L93">            pageQueryDTO.setMerchantId(null);</span>
+<span class="nc" id="L94">            pageQueryDTO.setAccountType(null);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        } else if (MerchantScopeUtils.isMerchantAccount()) {</span>
+<span class="nc" id="L96">            pageQueryDTO.setMerchantId(BaseContext.getCurrentMerchantId());</span>
+        }
+<span class="nc" id="L98">        PageHelper.startPage(pageQueryDTO.getPage(), pageQueryDTO.getPageSize());</span>
+<span class="nc" id="L99">        Page&lt;Employee&gt; page = employeeMapper.pageQuery(pageQueryDTO);</span>
+<span class="nc" id="L100">        List&lt;Employee&gt; result = page.getResult();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (result != null) {</span>
+<span class="nc" id="L102">            result.forEach(this::normalizeAccountScope);</span>
+        }
+<span class="nc" id="L104">        return new PageResult(page.getTotal(), result);</span>
+    }
+
+    @Override
+    public void startOrStop(Integer status, Long id) {
+<span class="nc" id="L109">        Employee employee = getAccessibleEmployee(id);</span>
+<span class="nc" id="L110">        employeeMapper.update(Employee.builder()</span>
+<span class="nc" id="L111">                .id(employee.getId())</span>
+<span class="nc" id="L112">                .status(status)</span>
+<span class="nc" id="L113">                .build());</span>
+<span class="nc" id="L114">    }</span>
+
+    @Override
+    public Employee getById(Long id) {
+<span class="nc" id="L118">        Employee employee = getAccessibleEmployee(id);</span>
+<span class="nc" id="L119">        employee.setPassword(&quot;******&quot;);</span>
+<span class="nc" id="L120">        return employee;</span>
+    }
+
+    @Override
+    public void updateEmployeeData(EmployeeDTO employeeDTO) {
+<span class="nc" id="L125">        Employee existing = getAccessibleEmployee(employeeDTO.getId());</span>
+<span class="nc" id="L126">        Employee toUpdate = new Employee();</span>
+<span class="nc" id="L127">        BeanUtils.copyProperties(employeeDTO, toUpdate);</span>
+<span class="nc" id="L128">        toUpdate.setId(existing.getId());</span>
+
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        if (!schemaSupport.supportsEmployeeScope()) {</span>
+<span class="nc" id="L131">            toUpdate.setMerchantId(null);</span>
+<span class="nc" id="L132">            toUpdate.setAccountType(null);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        } else if (MerchantScopeUtils.isMerchantAccount()) {</span>
+<span class="nc" id="L134">            toUpdate.setMerchantId(BaseContext.getCurrentMerchantId());</span>
+<span class="nc bnc" id="L135" title="All 4 branches missed.">            if (toUpdate.getAccountType() == null || AccountTypeConstant.PLATFORM_ADMIN.equals(toUpdate.getAccountType())) {</span>
+<span class="nc" id="L136">                toUpdate.setAccountType(existing.getAccountType());</span>
+            }
+<span class="nc bnc" id="L138" title="All 4 branches missed.">        } else if (!AccountTypeConstant.PLATFORM_ADMIN.equals(existing.getAccountType()) &amp;&amp; toUpdate.getMerchantId() == null) {</span>
+<span class="nc" id="L139">            toUpdate.setMerchantId(existing.getMerchantId());</span>
+        }
+
+<span class="nc" id="L142">        employeeMapper.update(toUpdate);</span>
+<span class="nc" id="L143">    }</span>
+
+    private Employee getAccessibleEmployee(Long id) {
+<span class="nc" id="L146">        Employee employee = employeeMapper.getById(id);</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (employee == null) {</span>
+<span class="nc" id="L148">            throw new BaseException(&quot;鍛樺伐涓嶅瓨鍦?&quot;);</span>
+        }
+<span class="nc" id="L150">        normalizeAccountScope(employee);</span>
+<span class="nc" id="L151">        MerchantScopeUtils.assertAccessible(employee.getMerchantId());</span>
+<span class="nc" id="L152">        return employee;</span>
+    }
+
+    private void normalizeAccountScope(Employee employee) {
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (employee == null) {</span>
+<span class="nc" id="L157">            return;</span>
+        }
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        if (!schemaSupport.supportsEmployeeScope()) {</span>
+<span class="nc" id="L160">            employee.setMerchantId(null);</span>
+<span class="nc" id="L161">            employee.setAccountType(AccountTypeConstant.PLATFORM_ADMIN);</span>
+<span class="nc" id="L162">            return;</span>
+        }
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        if (employee.getAccountType() == null) {</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">            employee.setAccountType(employee.getMerchantId() == null</span>
+<span class="nc" id="L166">                    ? AccountTypeConstant.PLATFORM_ADMIN</span>
+<span class="nc" id="L167">                    : AccountTypeConstant.MERCHANT_ADMIN);</span>
+        }
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (AccountTypeConstant.PLATFORM_ADMIN.equals(employee.getAccountType())) {</span>
+<span class="nc" id="L170">            employee.setMerchantId(null);</span>
+<span class="nc" id="L171">            return;</span>
+        }
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (employee.getMerchantId() == null) {</span>
+<span class="nc" id="L174">            throw new BaseException(&quot;鍟嗘埛璐﹀彿蹇呴』缁戝畾鍟嗘埛&quot;);</span>
+        }
+<span class="nc" id="L176">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

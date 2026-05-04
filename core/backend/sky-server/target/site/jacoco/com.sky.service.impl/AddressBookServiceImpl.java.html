@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AddressBookServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.service.impl</a> &gt; <span class="el_source">AddressBookServiceImpl.java</span></div><h1>AddressBookServiceImpl.java</h1><pre class="source lang-java linenums">package com.sky.service.impl;
+
+import com.sky.context.BaseContext;
+import com.sky.entity.AddressBook;
+import com.sky.mapper.AddressBookMapper;
+import com.sky.service.AddressBookService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+
+@Service
+<span class="nc" id="L14">@Slf4j</span>
+<span class="nc" id="L15">public class AddressBookServiceImpl implements AddressBookService {</span>
+    @Autowired
+    private AddressBookMapper addressBookMapper;
+
+    /**
+     * 条件查询
+     *
+     * @param addressBook
+     * @return
+     */
+    public List&lt;AddressBook&gt; list(AddressBook addressBook) {
+<span class="nc" id="L26">        return addressBookMapper.list(addressBook);</span>
+    }
+
+    /**
+     * 新增地址
+     *
+     * @param addressBook
+     */
+    public void save(AddressBook addressBook) {
+<span class="nc" id="L35">        addressBook.setUserId(BaseContext.getCurrentId());</span>
+<span class="nc" id="L36">        addressBook.setIsDefault(0);</span>
+<span class="nc" id="L37">        addressBookMapper.insert(addressBook);</span>
+<span class="nc" id="L38">    }</span>
+
+    /**
+     * 根据id查询
+     *
+     * @param id
+     * @return
+     */
+    public AddressBook getById(Long id) {
+<span class="nc" id="L47">        AddressBook addressBook = addressBookMapper.getById(id);</span>
+<span class="nc" id="L48">        return addressBook;</span>
+    }
+
+    /**
+     * 根据id修改地址
+     *
+     * @param addressBook
+     */
+    public void update(AddressBook addressBook) {
+<span class="nc" id="L57">        addressBookMapper.update(addressBook);</span>
+<span class="nc" id="L58">    }</span>
+
+    /**
+     * 设置默认地址
+     *
+     * @param addressBook
+     */
+    @Transactional
+    public void setDefault(AddressBook addressBook) {
+        //1、将当前用户的所有地址修改为非默认地址 update address_book set is_default = ? where user_id = ?
+<span class="nc" id="L68">        addressBook.setIsDefault(0);</span>
+<span class="nc" id="L69">        addressBook.setUserId(BaseContext.getCurrentId());</span>
+<span class="nc" id="L70">        addressBookMapper.updateIsDefaultByUserId(addressBook);</span>
+
+        //2、将当前地址改为默认地址 update address_book set is_default = ? where id = ?
+<span class="nc" id="L73">        addressBook.setIsDefault(1);</span>
+<span class="nc" id="L74">        addressBookMapper.update(addressBook);</span>
+<span class="nc" id="L75">    }</span>
+
+    /**
+     * 根据id删除地址
+     *
+     * @param id
+     */
+    public void deleteById(Long id) {
+<span class="nc" id="L83">        addressBookMapper.deleteById(id);</span>
+<span class="nc" id="L84">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

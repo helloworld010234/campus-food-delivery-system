@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MerchantController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.controller.admin</a> &gt; <span class="el_source">MerchantController.java</span></div><h1>MerchantController.java</h1><pre class="source lang-java linenums">package com.sky.controller.admin;
+
+import com.sky.dto.MerchantDTO;
+import com.sky.dto.MerchantPageQueryDTO;
+import com.sky.entity.Merchant;
+import com.sky.result.PageResult;
+import com.sky.result.Result;
+import com.sky.service.MerchantService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(&quot;/admin/merchant&quot;)
+<span class="nc" id="L20">public class MerchantController {</span>
+
+    @Autowired
+    private MerchantService merchantService;
+
+    @PostMapping
+    public Result&lt;String&gt; save(@RequestBody MerchantDTO merchantDTO) {
+<span class="nc" id="L27">        merchantService.save(merchantDTO);</span>
+<span class="nc" id="L28">        return Result.success();</span>
+    }
+
+    @PutMapping
+    public Result&lt;String&gt; update(@RequestBody MerchantDTO merchantDTO) {
+<span class="nc" id="L33">        merchantService.update(merchantDTO);</span>
+<span class="nc" id="L34">        return Result.success();</span>
+    }
+
+    @GetMapping(&quot;/page&quot;)
+    public Result&lt;PageResult&gt; page(MerchantPageQueryDTO queryDTO) {
+<span class="nc" id="L39">        return Result.success(merchantService.pageQuery(queryDTO));</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public Result&lt;Merchant&gt; getById(@PathVariable Long id) {
+<span class="nc" id="L44">        return Result.success(merchantService.getById(id));</span>
+    }
+
+    @PostMapping(&quot;/status/{status}&quot;)
+    public Result&lt;String&gt; updateStatus(@PathVariable Integer status, Long id) {
+<span class="nc" id="L49">        merchantService.updateStatus(status, id);</span>
+<span class="nc" id="L50">        return Result.success();</span>
+    }
+
+    @PostMapping(&quot;/business-status/{status}&quot;)
+    public Result&lt;String&gt; updateBusinessStatus(@PathVariable Integer status, Long id) {
+<span class="nc" id="L55">        merchantService.updateBusinessStatus(status, id);</span>
+<span class="nc" id="L56">        return Result.success();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

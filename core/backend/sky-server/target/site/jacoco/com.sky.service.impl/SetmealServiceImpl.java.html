@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SetmealServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.service.impl</a> &gt; <span class="el_source">SetmealServiceImpl.java</span></div><h1>SetmealServiceImpl.java</h1><pre class="source lang-java linenums">package com.sky.service.impl;
+
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.sky.constant.StatusConstant;
+import com.sky.dto.SetmealDTO;
+import com.sky.dto.SetmealPageQueryDTO;
+import com.sky.entity.Category;
+import com.sky.entity.Dish;
+import com.sky.entity.Setmeal;
+import com.sky.entity.SetmealDish;
+import com.sky.exception.BaseException;
+import com.sky.mapper.CategoryMapper;
+import com.sky.mapper.DishMapper;
+import com.sky.mapper.SetmealDishMapper;
+import com.sky.mapper.SetmealMapper;
+import com.sky.result.PageResult;
+import com.sky.service.SetmealService;
+import com.sky.support.MultiMerchantSchemaSupport;
+import com.sky.utils.MerchantScopeUtils;
+import com.sky.utils.StorefrontImageResolver;
+import com.sky.vo.DishItemVO;
+import com.sky.vo.SetmealVO;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+<span class="nc" id="L32">public class SetmealServiceImpl implements SetmealService {</span>
+
+    @Autowired
+    private SetmealMapper setmealMapper;
+
+    @Autowired
+    private DishMapper dishMapper;
+
+    @Autowired
+    private SetmealDishMapper setmealDishMapper;
+
+    @Autowired
+    private CategoryMapper categoryMapper;
+
+    @Autowired
+    private StorefrontImageResolver storefrontImageResolver;
+
+    @Autowired
+    private MultiMerchantSchemaSupport schemaSupport;
+
+    @Override
+    public PageResult pageQuery(SetmealPageQueryDTO setmealPageQueryDTO) {
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (schemaSupport.supportsSetmealScope()) {</span>
+<span class="nc" id="L55">            setmealPageQueryDTO.setMerchantId(MerchantScopeUtils.resolveQueryMerchantId(setmealPageQueryDTO.getMerchantId()));</span>
+        } else {
+<span class="nc" id="L57">            setmealPageQueryDTO.setMerchantId(null);</span>
+        }
+<span class="nc" id="L59">        PageHelper.startPage(setmealPageQueryDTO.getPage(), setmealPageQueryDTO.getPageSize());</span>
+<span class="nc" id="L60">        Page&lt;SetmealVO&gt; page = setmealMapper.pageQuery(setmealPageQueryDTO);</span>
+<span class="nc" id="L61">        return new PageResult(page.getTotal(), page.getResult());</span>
+    }
+
+    @Override
+    @Transactional
+    public void saveWithDish(SetmealDTO setmealDTO) {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        Long merchantId = schemaSupport.supportsSetmealScope()</span>
+<span class="nc" id="L68">                ? MerchantScopeUtils.resolveRequiredMerchantId(setmealDTO.getMerchantId())</span>
+<span class="nc" id="L69">                : null;</span>
+<span class="nc" id="L70">        validateCategoryOwnership(setmealDTO.getCategoryId(), merchantId);</span>
+
+<span class="nc" id="L72">        Setmeal setmeal = new Setmeal();</span>
+<span class="nc" id="L73">        BeanUtils.copyProperties(setmealDTO, setmeal);</span>
+<span class="nc" id="L74">        setmeal.setMerchantId(merchantId);</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (schemaSupport.supportsSetmealScope()) {</span>
+<span class="nc" id="L76">            setmealMapper.insert(setmeal);</span>
+        } else {
+<span class="nc" id="L78">            setmealMapper.insertLegacy(setmeal);</span>
+        }
+
+<span class="nc" id="L81">        List&lt;SetmealDish&gt; setmealDishes = setmealDTO.getSetmealDishes();</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (setmealDishes != null) {</span>
+<span class="nc" id="L83">            setmealDishes.forEach(item -&gt; item.setSetmealId(setmeal.getId()));</span>
+<span class="nc" id="L84">            setmealDishMapper.insertBatch(setmealDishes);</span>
+        }
+<span class="nc" id="L86">    }</span>
+
+    @Override
+    @Transactional
+    public void startOrStop(Integer status, Long id) {
+<span class="nc" id="L91">        Setmeal setmeal = getAccessibleSetmeal(id);</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (StatusConstant.ENABLE.equals(status)) {</span>
+<span class="nc" id="L93">            List&lt;Dish&gt; dishList = dishMapper.getBySetmealId(id);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">            if (dishList != null) {</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">                for (Dish dish : dishList) {</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                    if (StatusConstant.DISABLE.equals(dish.getStatus())) {</span>
+<span class="nc" id="L97">                        throw new BaseException(&quot;濂楅鍐呭寘鍚湭璧峰敭鑿滃搧锛屾棤娉曞惎鍞?&quot;);</span>
+                    }
+<span class="nc" id="L99">                }</span>
+            }
+        }
+<span class="nc" id="L102">        setmealMapper.update(Setmeal.builder().id(setmeal.getId()).status(status).build());</span>
+<span class="nc" id="L103">    }</span>
+
+    @Override
+    public void deleteBatch(List&lt;Long&gt; ids) {
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        for (Long id : ids) {</span>
+<span class="nc" id="L108">            Setmeal setmeal = getAccessibleSetmeal(id);</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            if (StatusConstant.ENABLE.equals(setmeal.getStatus())) {</span>
+<span class="nc" id="L110">                throw new BaseException(&quot;璧峰敭涓殑濂楅涓嶈兘鍒犻櫎&quot;);</span>
+            }
+<span class="nc" id="L112">        }</span>
+<span class="nc" id="L113">        setmealMapper.deleteBatch(ids);</span>
+<span class="nc" id="L114">        setmealDishMapper.deleteBatch(ids);</span>
+<span class="nc" id="L115">    }</span>
+
+    @Override
+    public SetmealVO getByIdWithDish(Long id) {
+<span class="nc" id="L119">        Setmeal setmeal = getAccessibleSetmeal(id);</span>
+<span class="nc" id="L120">        List&lt;SetmealDish&gt; dishes = setmealDishMapper.getBySetmealId(id);</span>
+<span class="nc" id="L121">        SetmealVO setmealVO = new SetmealVO();</span>
+<span class="nc" id="L122">        BeanUtils.copyProperties(setmeal, setmealVO);</span>
+<span class="nc" id="L123">        setmealVO.setSetmealDishes(dishes);</span>
+<span class="nc" id="L124">        return setmealVO;</span>
+    }
+
+    @Override
+    @Transactional
+    public void update(SetmealDTO setmealDTO) {
+<span class="nc" id="L130">        Setmeal existing = getAccessibleSetmeal(setmealDTO.getId());</span>
+<span class="nc" id="L131">        Long merchantId = null;</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (schemaSupport.supportsSetmealScope()) {</span>
+<span class="nc" id="L133">            merchantId = MerchantScopeUtils.resolveQueryMerchantId(setmealDTO.getMerchantId());</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">            if (merchantId == null) {</span>
+<span class="nc" id="L135">                merchantId = existing.getMerchantId();</span>
+            }
+        }
+<span class="nc" id="L138">        validateCategoryOwnership(setmealDTO.getCategoryId(), merchantId);</span>
+
+<span class="nc" id="L140">        Setmeal setmeal = new Setmeal();</span>
+<span class="nc" id="L141">        BeanUtils.copyProperties(setmealDTO, setmeal);</span>
+<span class="nc" id="L142">        setmeal.setId(existing.getId());</span>
+<span class="nc" id="L143">        setmeal.setMerchantId(merchantId);</span>
+<span class="nc" id="L144">        setmealMapper.update(setmeal);</span>
+
+<span class="nc" id="L146">        setmealDishMapper.deleteBySetmealId(setmealDTO.getId());</span>
+<span class="nc" id="L147">        List&lt;SetmealDish&gt; setmealDishes = setmealDTO.getSetmealDishes();</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (setmealDishes != null) {</span>
+<span class="nc" id="L149">            setmealDishes.forEach(item -&gt; item.setSetmealId(setmealDTO.getId()));</span>
+<span class="nc" id="L150">            setmealDishMapper.insertBatch(setmealDishes);</span>
+        }
+<span class="nc" id="L152">    }</span>
+
+    @Override
+    public List&lt;Setmeal&gt; list(Setmeal setmeal) {
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (schemaSupport.supportsSetmealScope()) {</span>
+<span class="nc" id="L157">            setmeal.setMerchantId(MerchantScopeUtils.resolveQueryMerchantId(setmeal.getMerchantId()));</span>
+        } else {
+<span class="nc" id="L159">            setmeal.setMerchantId(null);</span>
+        }
+<span class="nc" id="L161">        List&lt;Setmeal&gt; list = setmealMapper.list(setmeal);</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        if (list != null) {</span>
+<span class="nc" id="L163">            list.forEach(item -&gt; item.setImage(storefrontImageResolver.resolve(item.getImage())));</span>
+        }
+<span class="nc" id="L165">        return list;</span>
+    }
+
+    @Override
+    public List&lt;DishItemVO&gt; getDishItemById(Long id) {
+<span class="nc" id="L170">        Setmeal setmeal = getAccessibleSetmeal(id);</span>
+<span class="nc" id="L171">        List&lt;DishItemVO&gt; list = setmealMapper.getDishItemBySetmealId(setmeal.getId());</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (list != null) {</span>
+<span class="nc" id="L173">            list.forEach(item -&gt; item.setImage(storefrontImageResolver.resolve(item.getImage())));</span>
+        }
+<span class="nc" id="L175">        return list;</span>
+    }
+
+    private Setmeal getAccessibleSetmeal(Long id) {
+<span class="nc" id="L179">        Setmeal setmeal = setmealMapper.getById(id);</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        if (setmeal == null) {</span>
+<span class="nc" id="L181">            throw new BaseException(&quot;濂楅涓嶅瓨鍦?&quot;);</span>
+        }
+<span class="nc" id="L183">        MerchantScopeUtils.assertAccessible(setmeal.getMerchantId());</span>
+<span class="nc" id="L184">        return setmeal;</span>
+    }
+
+    private void validateCategoryOwnership(Long categoryId, Long merchantId) {
+<span class="nc bnc" id="L188" title="All 4 branches missed.">        if (categoryId == null || !schemaSupport.supportsCategoryScope()) {</span>
+<span class="nc" id="L189">            return;</span>
+        }
+<span class="nc" id="L191">        Category category = categoryMapper.getById(categoryId);</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        if (category == null) {</span>
+<span class="nc" id="L193">            throw new BaseException(&quot;鍒嗙被涓嶅瓨鍦?&quot;);</span>
+        }
+<span class="nc bnc" id="L195" title="All 6 branches missed.">        if (merchantId != null &amp;&amp; category.getMerchantId() != null &amp;&amp; !merchantId.equals(category.getMerchantId())) {</span>
+<span class="nc" id="L196">            throw new BaseException(&quot;鍒嗙被涓嶅睘浜庡綋鍓嶅晢鎴?&quot;);</span>
+        }
+<span class="nc" id="L198">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

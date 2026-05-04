@@ -1,0 +1,625 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.service.impl</a> &gt; <span class="el_source">OrderServiceImpl.java</span></div><h1>OrderServiceImpl.java</h1><pre class="source lang-java linenums">package com.sky.service.impl;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
+import com.sky.constant.AccountTypeConstant;
+import com.sky.context.BaseContext;
+import com.sky.dto.OrdersCancelDTO;
+import com.sky.dto.OrdersConfirmDTO;
+import com.sky.dto.OrdersPageQueryDTO;
+import com.sky.dto.OrdersPaymentDTO;
+import com.sky.dto.OrdersRejectionDTO;
+import com.sky.dto.OrdersSubmitDTO;
+import com.sky.entity.AddressBook;
+import com.sky.entity.Campus;
+import com.sky.entity.Employee;
+import com.sky.entity.Merchant;
+import com.sky.entity.OrderDetail;
+import com.sky.entity.Orders;
+import com.sky.entity.ShoppingCart;
+import com.sky.entity.User;
+import com.sky.exception.AddressBookBusinessException;
+import com.sky.exception.BaseException;
+import com.sky.exception.OrderBusinessException;
+import com.sky.exception.ShoppingCartBusinessException;
+import com.sky.mapper.AddressBookMapper;
+import com.sky.mapper.EmployeeMapper;
+import com.sky.mapper.OrderDetailMapper;
+import com.sky.mapper.OrdersMapper;
+import com.sky.mapper.ShoppingCartMapper;
+import com.sky.mapper.UserMapper;
+import com.sky.properties.StorefrontProperties;
+import com.sky.result.PageResult;
+import com.sky.service.CampusService;
+import com.sky.service.MerchantService;
+import com.sky.service.OrderService;
+import com.sky.support.MultiMerchantSchemaSupport;
+import com.sky.utils.MerchantScopeUtils;
+import com.sky.utils.StorefrontImageResolver;
+import com.sky.utils.WeChatPayUtil;
+import com.sky.vo.MerchantVO;
+import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderStatisticsVO;
+import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+<span class="nc" id="L63">public class OrderServiceImpl implements OrderService {</span>
+
+<span class="nc" id="L65">    private static final BigDecimal MOCK_PAY_AMOUNT = new BigDecimal(&quot;0.01&quot;);</span>
+
+    @Autowired
+    private OrdersMapper ordersMapper;
+
+    @Autowired
+    private AddressBookMapper addressBookMapper;
+
+    @Autowired
+    private ShoppingCartMapper shoppingCartMapper;
+
+    @Autowired
+    private OrderDetailMapper orderDetailMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private WeChatPayUtil weChatPayUtil;
+
+    @Autowired
+    private WebSocketServer webSocketServer;
+
+    @Autowired
+    private StorefrontProperties storefrontProperties;
+
+    @Autowired
+    private StorefrontImageResolver storefrontImageResolver;
+
+    @Autowired
+    private CampusService campusService;
+
+    @Autowired
+    private MerchantService merchantService;
+
+    @Autowired
+    private EmployeeMapper employeeMapper;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private MultiMerchantSchemaSupport schemaSupport;
+
+    @Override
+    @Transactional
+    public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        Long requestedMerchantId = ordersSubmitDTO.getMerchantId() != null</span>
+<span class="nc" id="L113">                ? ordersSubmitDTO.getMerchantId()</span>
+<span class="nc" id="L114">                : ordersSubmitDTO.getShopId();</span>
+<span class="nc" id="L115">        Long merchantId = resolveRequestedMerchantId(requestedMerchantId);</span>
+
+<span class="nc" id="L117">        AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (addressBook == null) {</span>
+<span class="nc" id="L119">            throw new AddressBookBusinessException(&quot;鐢ㄦ埛鍦板潃涓虹┖锛屼笉鑳戒笅鍗?&quot;);</span>
+        }
+
+<span class="nc" id="L122">        Merchant merchant = merchantService.getById(merchantId);</span>
+<span class="nc" id="L123">        Campus campus = campusService.getById(merchant.getCampusId());</span>
+<span class="nc" id="L124">        validateMerchantOrderable(campus, merchant);</span>
+
+<span class="nc" id="L126">        Long userId = BaseContext.getCurrentId();</span>
+<span class="nc" id="L127">        ShoppingCart condition = ShoppingCart.builder()</span>
+<span class="nc" id="L128">                .userId(userId)</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                .merchantId(schemaSupport.supportsShoppingCartScope() ? merchant.getId() : null)</span>
+<span class="nc" id="L130">                .build();</span>
+<span class="nc" id="L131">        List&lt;ShoppingCart&gt; cartList = shoppingCartMapper.list(condition);</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (CollectionUtils.isEmpty(cartList)) {</span>
+<span class="nc" id="L133">            throw new ShoppingCartBusinessException(&quot;璐墿杞︿负绌猴紝涓嶈兘涓嬪崟&quot;);</span>
+        }
+
+<span class="nc" id="L136">        BigDecimal goodsAmount = BigDecimal.ZERO;</span>
+<span class="nc" id="L137">        int itemCount = 0;</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        for (ShoppingCart cart : cartList) {</span>
+<span class="nc" id="L139">            goodsAmount = goodsAmount.add(cart.getAmount().multiply(BigDecimal.valueOf(cart.getNumber())));</span>
+<span class="nc" id="L140">            itemCount += cart.getNumber();</span>
+<span class="nc" id="L141">        }</span>
+
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        BigDecimal deliveryFee = campus.getDeliveryFee() == null ? BigDecimal.ZERO : campus.getDeliveryFee();</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        BigDecimal packAmount = schemaSupport.supportsOrdersScope() ? BigDecimal.ZERO : BigDecimal.valueOf(itemCount);</span>
+<span class="nc" id="L145">        BigDecimal totalAmount = goodsAmount.add(deliveryFee).add(packAmount);</span>
+
+<span class="nc" id="L147">        User user = userMapper.getById(userId);</span>
+
+<span class="nc" id="L149">        Orders orders = new Orders();</span>
+<span class="nc" id="L150">        BeanUtils.copyProperties(ordersSubmitDTO, orders);</span>
+<span class="nc" id="L151">        orders.setOrderTime(LocalDateTime.now());</span>
+<span class="nc" id="L152">        orders.setPhone(addressBook.getPhone());</span>
+<span class="nc" id="L153">        orders.setUserId(userId);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        orders.setUserName(user == null ? null : user.getName());</span>
+<span class="nc" id="L155">        orders.setConsignee(addressBook.getConsignee());</span>
+<span class="nc" id="L156">        orders.setStatus(Orders.PENDING_PAYMENT);</span>
+<span class="nc" id="L157">        orders.setPayStatus(Orders.UN_PAID);</span>
+<span class="nc" id="L158">        orders.setDeliveryStatus(1);</span>
+<span class="nc" id="L159">        orders.setTablewareStatus(1);</span>
+<span class="nc" id="L160">        orders.setNumber(String.valueOf(System.currentTimeMillis()));</span>
+<span class="nc" id="L161">        orders.setAddress(buildFullAddress(addressBook));</span>
+<span class="nc" id="L162">        orders.setPackAmount(packAmount);</span>
+<span class="nc" id="L163">        orders.setAmount(totalAmount);</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        if (schemaSupport.supportsOrdersScope()) {</span>
+<span class="nc" id="L165">            orders.setCampusId(campus.getId());</span>
+<span class="nc" id="L166">            orders.setMerchantId(merchant.getId());</span>
+<span class="nc" id="L167">            orders.setMerchantName(merchant.getName());</span>
+<span class="nc" id="L168">            orders.setGoodsAmount(goodsAmount);</span>
+<span class="nc" id="L169">            orders.setDeliveryFee(deliveryFee);</span>
+<span class="nc" id="L170">            orders.setItemCount(itemCount);</span>
+<span class="nc" id="L171">            ordersMapper.insert(orders);</span>
+        } else {
+<span class="nc" id="L173">            ordersMapper.insertLegacy(orders);</span>
+        }
+
+<span class="nc" id="L176">        List&lt;OrderDetail&gt; orderDetailList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        for (ShoppingCart cart : cartList) {</span>
+<span class="nc" id="L178">            OrderDetail orderDetail = new OrderDetail();</span>
+<span class="nc" id="L179">            BeanUtils.copyProperties(cart, orderDetail);</span>
+<span class="nc" id="L180">            orderDetail.setOrderId(orders.getId());</span>
+<span class="nc" id="L181">            orderDetailList.add(orderDetail);</span>
+<span class="nc" id="L182">        }</span>
+<span class="nc" id="L183">        orderDetailMapper.insertBatch(orderDetailList);</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">        if (schemaSupport.supportsShoppingCartScope()) {</span>
+<span class="nc" id="L185">            shoppingCartMapper.deleteByUserIdAndMerchantId(userId, merchant.getId());</span>
+        } else {
+<span class="nc" id="L187">            shoppingCartMapper.deleteByUserId(userId);</span>
+        }
+
+<span class="nc" id="L190">        return OrderSubmitVO.builder()</span>
+<span class="nc" id="L191">                .id(orders.getId())</span>
+<span class="nc" id="L192">                .orderTime(orders.getOrderTime())</span>
+<span class="nc" id="L193">                .orderAmount(orders.getAmount())</span>
+<span class="nc" id="L194">                .orderNumber(orders.getNumber())</span>
+<span class="nc" id="L195">                .build();</span>
+    }
+
+    @Override
+    public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) throws Exception {
+<span class="nc" id="L200">        Long userId = BaseContext.getCurrentId();</span>
+<span class="nc" id="L201">        Orders ordersDB = ordersMapper.getByNumberAndUserId(ordersPaymentDTO.getOrderNumber(), userId);</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        if (ordersDB == null) {</span>
+<span class="nc" id="L203">            throw new OrderBusinessException(&quot;璁㈠崟涓嶅瓨鍦?&quot;);</span>
+        }
+<span class="nc bnc" id="L205" title="All 2 branches missed.">        if (Orders.PAID.equals(ordersDB.getPayStatus())) {</span>
+<span class="nc" id="L206">            throw new OrderBusinessException(&quot;璇ヨ鍗曞凡鏀粯&quot;);</span>
+        }
+
+<span class="nc bnc" id="L209" title="All 2 branches missed.">        if (Boolean.TRUE.equals(storefrontProperties.getMockPayment())) {</span>
+<span class="nc" id="L210">            paySuccess(ordersPaymentDTO.getOrderNumber());</span>
+<span class="nc" id="L211">            return OrderPaymentVO.builder().mockPay(Boolean.TRUE).build();</span>
+        }
+
+<span class="nc" id="L214">        User user = userMapper.getById(userId);</span>
+<span class="nc" id="L215">        JsonNode jsonObject = weChatPayUtil.pay(</span>
+<span class="nc" id="L216">                ordersPaymentDTO.getOrderNumber(),</span>
+                MOCK_PAY_AMOUNT,
+<span class="nc bnc" id="L218" title="All 2 branches missed.">                (ordersDB.getMerchantName() == null ? &quot;璁㈠崟&quot; : ordersDB.getMerchantName() + &quot;璁㈠崟&quot;),</span>
+<span class="nc" id="L219">                user.getOpenid()</span>
+        );
+
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (&quot;ORDERPAID&quot;.equals(jsonObject.get(&quot;code&quot;).asText())) {</span>
+<span class="nc" id="L223">            throw new OrderBusinessException(&quot;璇ヨ鍗曞凡鏀粯&quot;);</span>
+        }
+
+<span class="nc" id="L226">        OrderPaymentVO vo = objectMapper.treeToValue(jsonObject, OrderPaymentVO.class);</span>
+<span class="nc" id="L227">        vo.setPackageStr(jsonObject.get(&quot;package&quot;).asText());</span>
+<span class="nc" id="L228">        vo.setMockPay(Boolean.FALSE);</span>
+<span class="nc" id="L229">        return vo;</span>
+    }
+
+    @Override
+    public void paySuccess(String outTradeNo) {
+<span class="nc" id="L234">        Orders ordersDB = ordersMapper.getByNumber(outTradeNo);</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        if (ordersDB == null) {</span>
+<span class="nc" id="L236">            return;</span>
+        }
+
+<span class="nc bnc" id="L239" title="All 4 branches missed.">        if (Orders.PAID.equals(ordersDB.getPayStatus()) &amp;&amp; Orders.TO_BE_CONFIRMED.equals(ordersDB.getStatus())) {</span>
+<span class="nc" id="L240">            return;</span>
+        }
+
+<span class="nc bnc" id="L243" title="All 4 branches missed.">        if (!Orders.PENDING_PAYMENT.equals(ordersDB.getStatus()) &amp;&amp; !Orders.UN_PAID.equals(ordersDB.getPayStatus())) {</span>
+<span class="nc" id="L244">            return;</span>
+        }
+
+<span class="nc" id="L247">        ordersMapper.update(Orders.builder()</span>
+<span class="nc" id="L248">                .id(ordersDB.getId())</span>
+<span class="nc" id="L249">                .status(Orders.TO_BE_CONFIRMED)</span>
+<span class="nc" id="L250">                .payStatus(Orders.PAID)</span>
+<span class="nc" id="L251">                .checkoutTime(LocalDateTime.now())</span>
+<span class="nc" id="L252">                .build());</span>
+
+<span class="nc" id="L254">        sendOrderEventToMerchant(ordersDB.getMerchantId(), 1, ordersDB.getId(), &quot;璁㈠崟鍙凤細&quot; + outTradeNo);</span>
+<span class="nc" id="L255">    }</span>
+
+    @Override
+    public PageResult pageQueryUser(int page, int pageSize, Integer status, Integer payStatus) {
+<span class="nc" id="L259">        PageHelper.startPage(page, pageSize);</span>
+<span class="nc" id="L260">        OrdersPageQueryDTO queryDTO = new OrdersPageQueryDTO();</span>
+<span class="nc" id="L261">        queryDTO.setUserId(BaseContext.getCurrentId());</span>
+<span class="nc" id="L262">        queryDTO.setStatus(status);</span>
+<span class="nc" id="L263">        queryDTO.setPayStatus(payStatus);</span>
+<span class="nc" id="L264">        queryDTO.setMerchantId(null);</span>
+
+<span class="nc" id="L266">        Page&lt;Orders&gt; orderPage = ordersMapper.pageQuery(queryDTO);</span>
+<span class="nc" id="L267">        List&lt;OrderVO&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L268" title="All 4 branches missed.">        if (orderPage != null &amp;&amp; orderPage.getTotal() &gt; 0) {</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">            for (Orders orders : orderPage) {</span>
+<span class="nc" id="L270">                list.add(buildOrderVO(orders));</span>
+<span class="nc" id="L271">            }</span>
+        }
+<span class="nc bnc" id="L273" title="All 2 branches missed.">        return new PageResult(orderPage == null ? 0 : orderPage.getTotal(), list);</span>
+    }
+
+    @Override
+    public OrderVO detail(Long id) {
+<span class="nc" id="L278">        Orders orders = getAccessibleOrder(id);</span>
+<span class="nc" id="L279">        return buildOrderVO(orders);</span>
+    }
+
+    @Override
+    public void cancelOrderById(Long id) throws Exception {
+<span class="nc" id="L284">        Orders orders = getAccessibleUserOrder(id);</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">        if (orders.getStatus() &gt; Orders.TO_BE_CONFIRMED) {</span>
+<span class="nc" id="L286">            throw new OrderBusinessException(&quot;璁㈠崟鐘舵€侀敊璇?&quot;);</span>
+        }
+
+<span class="nc" id="L289">        Orders toUpdate = new Orders();</span>
+<span class="nc" id="L290">        toUpdate.setId(orders.getId());</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">        if (refundIfNecessary(orders)) {</span>
+<span class="nc" id="L292">            toUpdate.setPayStatus(Orders.REFUND);</span>
+        }
+<span class="nc" id="L294">        toUpdate.setStatus(Orders.CANCELLED);</span>
+<span class="nc" id="L295">        toUpdate.setCancelReason(&quot;鐢ㄦ埛鍙栨秷&quot;);</span>
+<span class="nc" id="L296">        toUpdate.setCancelTime(LocalDateTime.now());</span>
+<span class="nc" id="L297">        ordersMapper.update(toUpdate);</span>
+<span class="nc" id="L298">    }</span>
+
+    @Override
+    public void repetition(Long id) {
+<span class="nc" id="L302">        Orders orders = getAccessibleUserOrder(id);</span>
+<span class="nc" id="L303">        Long userId = BaseContext.getCurrentId();</span>
+<span class="nc" id="L304">        List&lt;OrderDetail&gt; orderDetailList = orderDetailMapper.getByOrderId(id);</span>
+<span class="nc" id="L305">        List&lt;ShoppingCart&gt; shoppingCartList = orderDetailList.stream().map(item -&gt; {</span>
+<span class="nc" id="L306">            ShoppingCart shoppingCart = new ShoppingCart();</span>
+<span class="nc" id="L307">            BeanUtils.copyProperties(item, shoppingCart, &quot;id&quot;);</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">            shoppingCart.setMerchantId(schemaSupport.supportsShoppingCartScope() ? resolveRequestedMerchantId(orders.getMerchantId()) : null);</span>
+<span class="nc" id="L309">            shoppingCart.setUserId(userId);</span>
+<span class="nc" id="L310">            shoppingCart.setCreateTime(LocalDateTime.now());</span>
+<span class="nc" id="L311">            return shoppingCart;</span>
+<span class="nc" id="L312">        }).collect(Collectors.toList());</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        if (schemaSupport.supportsShoppingCartScope()) {</span>
+<span class="nc" id="L314">            shoppingCartMapper.insertBatch(shoppingCartList);</span>
+        } else {
+<span class="nc" id="L316">            shoppingCartMapper.insertBatchLegacy(shoppingCartList);</span>
+        }
+<span class="nc" id="L318">    }</span>
+
+    @Override
+    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+<span class="nc bnc" id="L322" title="All 2 branches missed.">        if (schemaSupport.supportsOrdersScope()) {</span>
+<span class="nc" id="L323">            ordersPageQueryDTO.setMerchantId(MerchantScopeUtils.resolveQueryMerchantId(ordersPageQueryDTO.getMerchantId()));</span>
+        } else {
+<span class="nc" id="L325">            ordersPageQueryDTO.setMerchantId(null);</span>
+        }
+<span class="nc" id="L327">        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());</span>
+<span class="nc" id="L328">        Page&lt;Orders&gt; page = ordersMapper.pageQuery(ordersPageQueryDTO);</span>
+<span class="nc" id="L329">        List&lt;OrderVO&gt; orderVOList = getOrderVOList(page);</span>
+<span class="nc" id="L330">        return new PageResult(page.getTotal(), orderVOList);</span>
+    }
+
+    @Override
+    public OrderStatisticsVO statistics() {
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        Long merchantId = schemaSupport.supportsOrdersScope()</span>
+<span class="nc" id="L336">                ? MerchantScopeUtils.resolveQueryMerchantId(null)</span>
+<span class="nc" id="L337">                : null;</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">        Integer toBeConfirmed = schemaSupport.supportsOrdersScope()</span>
+<span class="nc" id="L339">                ? ordersMapper.countStatus(Orders.TO_BE_CONFIRMED, merchantId)</span>
+<span class="nc" id="L340">                : ordersMapper.countStatusLegacy(Orders.TO_BE_CONFIRMED);</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        Integer confirmed = schemaSupport.supportsOrdersScope()</span>
+<span class="nc" id="L342">                ? ordersMapper.countStatus(Orders.CONFIRMED, merchantId)</span>
+<span class="nc" id="L343">                : ordersMapper.countStatusLegacy(Orders.CONFIRMED);</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">        Integer deliveryInProgress = schemaSupport.supportsOrdersScope()</span>
+<span class="nc" id="L345">                ? ordersMapper.countStatus(Orders.DELIVERY_IN_PROGRESS, merchantId)</span>
+<span class="nc" id="L346">                : ordersMapper.countStatusLegacy(Orders.DELIVERY_IN_PROGRESS);</span>
+
+<span class="nc" id="L348">        OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();</span>
+<span class="nc" id="L349">        orderStatisticsVO.setToBeConfirmed(toBeConfirmed);</span>
+<span class="nc" id="L350">        orderStatisticsVO.setConfirmed(confirmed);</span>
+<span class="nc" id="L351">        orderStatisticsVO.setDeliveryInProgress(deliveryInProgress);</span>
+<span class="nc" id="L352">        return orderStatisticsVO;</span>
+    }
+
+    @Override
+    public void confirm(OrdersConfirmDTO confirmDTO) {
+<span class="nc" id="L357">        Orders orders = getAccessibleAdminOrder(confirmDTO.getId());</span>
+<span class="nc" id="L358">        ordersMapper.update(Orders.builder()</span>
+<span class="nc" id="L359">                .id(orders.getId())</span>
+<span class="nc" id="L360">                .status(Orders.CONFIRMED)</span>
+<span class="nc" id="L361">                .build());</span>
+<span class="nc" id="L362">    }</span>
+
+    @Override
+    public void rejection(OrdersRejectionDTO ordersRejectionDTO) throws Exception {
+<span class="nc" id="L366">        Orders ordersDB = getAccessibleAdminOrder(ordersRejectionDTO.getId());</span>
+<span class="nc bnc" id="L367" title="All 2 branches missed.">        if (!Orders.TO_BE_CONFIRMED.equals(ordersDB.getStatus())) {</span>
+<span class="nc" id="L368">            throw new OrderBusinessException(&quot;璁㈠崟鐘舵€侀敊璇?&quot;);</span>
+        }
+
+<span class="nc" id="L371">        Orders orders = new Orders();</span>
+<span class="nc" id="L372">        orders.setId(ordersDB.getId());</span>
+<span class="nc bnc" id="L373" title="All 2 branches missed.">        if (refundIfNecessary(ordersDB)) {</span>
+<span class="nc" id="L374">            orders.setPayStatus(Orders.REFUND);</span>
+        }
+<span class="nc" id="L376">        orders.setStatus(Orders.CANCELLED);</span>
+<span class="nc" id="L377">        orders.setRejectionReason(ordersRejectionDTO.getRejectionReason());</span>
+<span class="nc" id="L378">        orders.setCancelTime(LocalDateTime.now());</span>
+<span class="nc" id="L379">        ordersMapper.update(orders);</span>
+<span class="nc" id="L380">    }</span>
+
+    @Override
+    public void cancel(OrdersCancelDTO ordersCancelDTO) throws Exception {
+<span class="nc" id="L384">        Orders ordersDB = getAccessibleAdminOrder(ordersCancelDTO.getId());</span>
+<span class="nc" id="L385">        Orders orders = new Orders();</span>
+<span class="nc" id="L386">        orders.setId(ordersDB.getId());</span>
+<span class="nc bnc" id="L387" title="All 2 branches missed.">        if (refundIfNecessary(ordersDB)) {</span>
+<span class="nc" id="L388">            orders.setPayStatus(Orders.REFUND);</span>
+        }
+<span class="nc" id="L390">        orders.setStatus(Orders.CANCELLED);</span>
+<span class="nc" id="L391">        orders.setCancelReason(ordersCancelDTO.getCancelReason());</span>
+<span class="nc" id="L392">        orders.setCancelTime(LocalDateTime.now());</span>
+<span class="nc" id="L393">        ordersMapper.update(orders);</span>
+<span class="nc" id="L394">    }</span>
+
+    @Override
+    public void delivery(Long id) {
+<span class="nc" id="L398">        Orders ordersDB = getAccessibleAdminOrder(id);</span>
+<span class="nc bnc" id="L399" title="All 2 branches missed.">        if (!Orders.CONFIRMED.equals(ordersDB.getStatus())) {</span>
+<span class="nc" id="L400">            throw new OrderBusinessException(&quot;璁㈠崟鐘舵€侀敊璇?&quot;);</span>
+        }
+
+<span class="nc" id="L403">        ordersMapper.update(Orders.builder()</span>
+<span class="nc" id="L404">                .id(ordersDB.getId())</span>
+<span class="nc" id="L405">                .status(Orders.DELIVERY_IN_PROGRESS)</span>
+<span class="nc" id="L406">                .build());</span>
+<span class="nc" id="L407">    }</span>
+
+    @Override
+    public void complete(Long id) {
+<span class="nc" id="L411">        Orders ordersDB = getAccessibleAdminOrder(id);</span>
+<span class="nc bnc" id="L412" title="All 2 branches missed.">        if (!Orders.DELIVERY_IN_PROGRESS.equals(ordersDB.getStatus())) {</span>
+<span class="nc" id="L413">            throw new OrderBusinessException(&quot;璁㈠崟鐘舵€侀敊璇?&quot;);</span>
+        }
+
+<span class="nc" id="L416">        ordersMapper.update(Orders.builder()</span>
+<span class="nc" id="L417">                .id(ordersDB.getId())</span>
+<span class="nc" id="L418">                .deliveryTime(LocalDateTime.now())</span>
+<span class="nc" id="L419">                .status(Orders.COMPLETED)</span>
+<span class="nc" id="L420">                .build());</span>
+<span class="nc" id="L421">    }</span>
+
+    @Override
+    public void reminder(Long id) {
+<span class="nc" id="L425">        Orders ordersDB = getAccessibleUserOrder(id);</span>
+<span class="nc" id="L426">        sendOrderEventToMerchant(ordersDB.getMerchantId(), 2, id, &quot;璁㈠崟鍙凤細&quot; + ordersDB.getNumber());</span>
+<span class="nc" id="L427">    }</span>
+
+    @Override
+    public LocalDateTime getEstimatedDeliveryTime(Long merchantId, String customerAddress) {
+<span class="nc" id="L431">        Merchant merchant = merchantService.getById(resolveRequestedMerchantId(merchantId));</span>
+<span class="nc" id="L432">        Campus campus = campusService.getById(merchant.getCampusId());</span>
+<span class="nc" id="L433">        validateMerchantOrderable(campus, merchant);</span>
+<span class="nc" id="L434">        Integer minutes = campus.getEstimatedDeliveryMinutes();</span>
+<span class="nc bnc" id="L435" title="All 4 branches missed.">        if (minutes == null || minutes &lt;= 0) {</span>
+<span class="nc" id="L436">            minutes = 30;</span>
+        }
+<span class="nc" id="L438">        return LocalDateTime.now().plusMinutes(minutes);</span>
+    }
+
+    private Orders getAccessibleOrder(Long id) {
+<span class="nc" id="L442">        Orders orders = ordersMapper.getById(id);</span>
+<span class="nc bnc" id="L443" title="All 2 branches missed.">        if (orders == null) {</span>
+<span class="nc" id="L444">            throw new OrderBusinessException(&quot;璁㈠崟涓嶅瓨鍦?&quot;);</span>
+        }
+
+<span class="nc bnc" id="L447" title="All 2 branches missed.">        if (BaseContext.getCurrentAccountType() != null) {</span>
+<span class="nc" id="L448">            MerchantScopeUtils.assertAccessible(orders.getMerchantId());</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">        } else if (!BaseContext.getCurrentId().equals(orders.getUserId())) {</span>
+<span class="nc" id="L450">            throw new BaseException(&quot;鏃犳潈鏌ョ湅璇ヨ鍗?&quot;);</span>
+        }
+<span class="nc" id="L452">        return orders;</span>
+    }
+
+    private Orders getAccessibleUserOrder(Long id) {
+<span class="nc" id="L456">        Orders orders = getAccessibleOrder(id);</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">        if (BaseContext.getCurrentAccountType() != null) {</span>
+<span class="nc" id="L458">            throw new BaseException(&quot;褰撳墠鎺ュ彛浠呴檺鐢ㄦ埛浣跨敤&quot;);</span>
+        }
+<span class="nc" id="L460">        return orders;</span>
+    }
+
+    private Orders getAccessibleAdminOrder(Long id) {
+<span class="nc" id="L464">        Orders orders = getAccessibleOrder(id);</span>
+<span class="nc bnc" id="L465" title="All 2 branches missed.">        if (BaseContext.getCurrentAccountType() == null) {</span>
+<span class="nc" id="L466">            throw new BaseException(&quot;褰撳墠鎺ュ彛浠呴檺鍚庡彴浣跨敤&quot;);</span>
+        }
+<span class="nc" id="L468">        return orders;</span>
+    }
+
+    private List&lt;OrderVO&gt; getOrderVOList(Page&lt;Orders&gt; page) {
+<span class="nc" id="L472">        List&lt;OrderVO&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L473">        List&lt;Orders&gt; ordersList = page.getResult();</span>
+<span class="nc bnc" id="L474" title="All 2 branches missed.">        if (!CollectionUtils.isEmpty(ordersList)) {</span>
+<span class="nc bnc" id="L475" title="All 2 branches missed.">            for (Orders orders : ordersList) {</span>
+<span class="nc" id="L476">                OrderVO orderVO = new OrderVO();</span>
+<span class="nc" id="L477">                BeanUtils.copyProperties(orders, orderVO);</span>
+<span class="nc" id="L478">                orderVO.setOrderDishes(getOrderDishesStr(orders));</span>
+<span class="nc" id="L479">                list.add(orderVO);</span>
+<span class="nc" id="L480">            }</span>
+        }
+<span class="nc" id="L482">        return list;</span>
+    }
+
+    private String getOrderDishesStr(Orders orders) {
+<span class="nc" id="L486">        List&lt;OrderDetail&gt; orderDetailList = orderDetailMapper.getByOrderId(orders.getId());</span>
+<span class="nc" id="L487">        List&lt;String&gt; orderDishList = orderDetailList.stream()</span>
+<span class="nc" id="L488">                .map(item -&gt; item.getName() + &quot;*&quot; + item.getNumber() + &quot;;&quot;)</span>
+<span class="nc" id="L489">                .collect(Collectors.toList());</span>
+<span class="nc" id="L490">        return String.join(&quot;&quot;, orderDishList);</span>
+    }
+
+    private OrderVO buildOrderVO(Orders orders) {
+<span class="nc" id="L494">        OrderVO orderVO = new OrderVO();</span>
+<span class="nc" id="L495">        BeanUtils.copyProperties(orders, orderVO);</span>
+
+<span class="nc" id="L497">        List&lt;OrderDetail&gt; orderDetailList = orderDetailMapper.getByOrderId(orders.getId());</span>
+<span class="nc" id="L498">        resolveOrderDetailImages(orderDetailList);</span>
+<span class="nc" id="L499">        orderVO.setOrderDetailList(orderDetailList);</span>
+
+<span class="nc" id="L501">        MerchantVO merchantInfo = merchantService.getMerchantInfo(orders.getMerchantId());</span>
+<span class="nc bnc" id="L502" title="All 2 branches missed.">        orderVO.setShopName(orders.getMerchantName() == null ? merchantInfo.getName() : orders.getMerchantName());</span>
+<span class="nc bnc" id="L503" title="All 2 branches missed.">        orderVO.setDeliveryFee(orders.getDeliveryFee() == null ? merchantInfo.getDeliveryFee() : orders.getDeliveryFee());</span>
+<span class="nc" id="L504">        orderVO.setShopTelephone(merchantInfo.getContactPhone());</span>
+<span class="nc" id="L505">        orderVO.setCourierTelephone(merchantInfo.getServicePhone());</span>
+
+<span class="nc bnc" id="L507" title="All 2 branches missed.">        if (orders.getAddressBookId() != null) {</span>
+<span class="nc" id="L508">            AddressBook addressBook = addressBookMapper.getById(orders.getAddressBookId());</span>
+<span class="nc bnc" id="L509" title="All 2 branches missed.">            if (addressBook != null) {</span>
+<span class="nc" id="L510">                orderVO.setSex(addressBook.getSex());</span>
+<span class="nc bnc" id="L511" title="All 2 branches missed.">                if (isBlank(orderVO.getAddress())) {</span>
+<span class="nc" id="L512">                    orderVO.setAddress(buildFullAddress(addressBook));</span>
+                }
+            }
+        }
+<span class="nc" id="L516">        return orderVO;</span>
+    }
+
+    private void resolveOrderDetailImages(List&lt;OrderDetail&gt; orderDetailList) {
+<span class="nc bnc" id="L520" title="All 2 branches missed.">        if (orderDetailList == null) {</span>
+<span class="nc" id="L521">            return;</span>
+        }
+<span class="nc" id="L523">        orderDetailList.forEach(item -&gt; item.setImage(storefrontImageResolver.resolve(item.getImage())));</span>
+<span class="nc" id="L524">    }</span>
+
+    private boolean refundIfNecessary(Orders orders) throws Exception {
+<span class="nc bnc" id="L527" title="All 4 branches missed.">        if (orders == null || !Orders.PAID.equals(orders.getPayStatus())) {</span>
+<span class="nc" id="L528">            return false;</span>
+        }
+
+<span class="nc bnc" id="L531" title="All 2 branches missed.">        if (Boolean.TRUE.equals(storefrontProperties.getMockPayment())) {</span>
+<span class="nc" id="L532">            return true;</span>
+        }
+
+<span class="nc" id="L535">        String refund = weChatPayUtil.refund(</span>
+<span class="nc" id="L536">                orders.getNumber(),</span>
+<span class="nc" id="L537">                orders.getNumber(),</span>
+                MOCK_PAY_AMOUNT,
+                MOCK_PAY_AMOUNT
+        );
+<span class="nc bnc" id="L541" title="All 2 branches missed.">        return refund != null;</span>
+    }
+
+    private String buildFullAddress(AddressBook addressBook) {
+<span class="nc bnc" id="L545" title="All 2 branches missed.">        if (addressBook == null) {</span>
+<span class="nc" id="L546">            return null;</span>
+        }
+
+<span class="nc" id="L549">        StringBuilder builder = new StringBuilder();</span>
+<span class="nc" id="L550">        appendIfHasText(builder, addressBook.getProvinceName());</span>
+<span class="nc" id="L551">        appendIfHasText(builder, addressBook.getCityName());</span>
+<span class="nc" id="L552">        appendIfHasText(builder, addressBook.getDistrictName());</span>
+<span class="nc" id="L553">        appendIfHasText(builder, addressBook.getDetail());</span>
+<span class="nc" id="L554">        return builder.toString();</span>
+    }
+
+    private void appendIfHasText(StringBuilder builder, String value) {
+<span class="nc bnc" id="L558" title="All 2 branches missed.">        if (!isBlank(value)) {</span>
+<span class="nc" id="L559">            builder.append(value.trim());</span>
+        }
+<span class="nc" id="L561">    }</span>
+
+    private boolean isBlank(String value) {
+<span class="nc bnc" id="L564" title="All 4 branches missed.">        return value == null || value.trim().isEmpty();</span>
+    }
+
+    private void validateMerchantOrderable(Campus campus, Merchant merchant) {
+<span class="nc bnc" id="L568" title="All 4 branches missed.">        if (campus == null || !Integer.valueOf(1).equals(campus.getStatus())) {</span>
+<span class="nc" id="L569">            throw new BaseException(&quot;褰撳墠鏍″洯鏆傛湭寮€鏀炬湇鍔?&quot;);</span>
+        }
+<span class="nc bnc" id="L571" title="All 4 branches missed.">        if (merchant == null || !Integer.valueOf(1).equals(merchant.getStatus())) {</span>
+<span class="nc" id="L572">            throw new BaseException(&quot;褰撳墠鍟嗘埛涓嶅彲鐢?&quot;);</span>
+        }
+<span class="nc bnc" id="L574" title="All 2 branches missed.">        if (!Integer.valueOf(1).equals(merchant.getBusinessStatus())) {</span>
+<span class="nc" id="L575">            throw new BaseException(&quot;褰撳墠鍟嗘埛宸叉墦鐑?&quot;);</span>
+        }
+<span class="nc" id="L577">    }</span>
+
+    private void sendOrderEventToMerchant(Long merchantId, Integer type, Long orderId, String content) {
+<span class="nc" id="L580">        Map&lt;String, Object&gt; payload = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L581">        payload.put(&quot;type&quot;, type);</span>
+<span class="nc bnc" id="L582" title="All 4 branches missed.">        payload.put(&quot;event&quot;, type != null &amp;&amp; type == 1 ? &quot;NEW_ORDER&quot; : &quot;ORDER_REMINDER&quot;);</span>
+<span class="nc" id="L583">        payload.put(&quot;orderId&quot;, orderId);</span>
+<span class="nc" id="L584">        payload.put(&quot;merchantId&quot;, merchantId);</span>
+<span class="nc" id="L585">        payload.put(&quot;content&quot;, content);</span>
+        String message;
+        try {
+<span class="nc" id="L588">            message = objectMapper.writeValueAsString(payload);</span>
+<span class="nc" id="L589">        } catch (Exception e) {</span>
+<span class="nc" id="L590">            throw new RuntimeException(&quot;Failed to serialize order event&quot;, e);</span>
+<span class="nc" id="L591">        }</span>
+
+<span class="nc bnc" id="L593" title="All 4 branches missed.">        if (!schemaSupport.supportsEmployeeScope() || merchantId == null) {</span>
+<span class="nc" id="L594">            webSocketServer.sendToAllClient(message);</span>
+<span class="nc" id="L595">            return;</span>
+        }
+
+<span class="nc" id="L598">        List&lt;Employee&gt; employees = employeeMapper.listByMerchantId(merchantId);</span>
+<span class="nc bnc" id="L599" title="All 2 branches missed.">        if (!CollectionUtils.isEmpty(employees)) {</span>
+<span class="nc bnc" id="L600" title="All 2 branches missed.">            for (Employee employee : employees) {</span>
+<span class="nc" id="L601">                webSocketServer.sendToClient(String.valueOf(employee.getId()), message);</span>
+<span class="nc" id="L602">            }</span>
+        }
+<span class="nc" id="L604">        sendOrderEventToPlatformAdmins(message);</span>
+<span class="nc" id="L605">    }</span>
+
+    private void sendOrderEventToPlatformAdmins(String message) {
+<span class="nc" id="L608">        List&lt;Employee&gt; platformAdmins = employeeMapper.listByAccountType(AccountTypeConstant.PLATFORM_ADMIN);</span>
+<span class="nc bnc" id="L609" title="All 2 branches missed.">        if (CollectionUtils.isEmpty(platformAdmins)) {</span>
+<span class="nc" id="L610">            return;</span>
+        }
+<span class="nc bnc" id="L612" title="All 2 branches missed.">        for (Employee employee : platformAdmins) {</span>
+<span class="nc" id="L613">            webSocketServer.sendToClient(String.valueOf(employee.getId()), message);</span>
+<span class="nc" id="L614">        }</span>
+<span class="nc" id="L615">    }</span>
+
+    private Long resolveRequestedMerchantId(Long merchantId) {
+<span class="nc bnc" id="L618" title="All 2 branches missed.">        if (merchantId != null) {</span>
+<span class="nc" id="L619">            return merchantId;</span>
+        }
+<span class="nc" id="L621">        Merchant merchant = merchantService.getFirstEnabledMerchant(null);</span>
+<span class="nc bnc" id="L622" title="All 2 branches missed.">        return merchant == null ? schemaSupport.getDefaultMerchantId() : merchant.getId();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CommonController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.controller.admin</a> &gt; <span class="el_source">CommonController.java</span></div><h1>CommonController.java</h1><pre class="source lang-java linenums">package com.sky.controller.admin;
+
+import com.sky.constant.MessageConstant;
+import com.sky.result.Result;
+import com.sky.utils.AliOssUtil;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping(&quot;/admin/common&quot;)
+@Api(tags = &quot;通用接口&quot;)
+<span class="nc" id="L28">@Slf4j</span>
+<span class="nc" id="L29">public class CommonController {</span>
+
+<span class="nc" id="L31">    private static final List&lt;String&gt; ALLOWED_EXTENSIONS = Arrays.asList(&quot;jpg&quot;, &quot;jpeg&quot;, &quot;png&quot;, &quot;gif&quot;, &quot;webp&quot;);</span>
+
+    @Autowired
+    private AliOssUtil aliOssUtil;
+
+    /**
+     * 文件上传
+     */
+    @PostMapping(&quot;/upload&quot;)
+    @ApiOperation(&quot;文件上传&quot;)
+    public Result&lt;String&gt; upload(MultipartFile file) {
+<span class="nc bnc" id="L42" title="All 4 branches missed.">        if (file == null || file.isEmpty()) {</span>
+<span class="nc" id="L43">            return Result.error(&quot;上传文件不能为空&quot;);</span>
+        }
+
+<span class="nc" id="L46">        String originalFilename = file.getOriginalFilename();</span>
+<span class="nc bnc" id="L47" title="All 4 branches missed.">        if (originalFilename == null || !originalFilename.contains(&quot;.&quot;)) {</span>
+<span class="nc" id="L48">            return Result.error(&quot;文件名格式不正确&quot;);</span>
+        }
+
+<span class="nc" id="L51">        String suffix = originalFilename.substring(originalFilename.lastIndexOf(&quot;.&quot;) + 1).toLowerCase();</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (!ALLOWED_EXTENSIONS.contains(suffix)) {</span>
+<span class="nc" id="L53">            return Result.error(&quot;不支持的文件类型，仅允许: &quot; + ALLOWED_EXTENSIONS);</span>
+        }
+
+<span class="nc" id="L56">        String contentType = file.getContentType();</span>
+<span class="nc bnc" id="L57" title="All 4 branches missed.">        if (contentType == null || !contentType.startsWith(&quot;image/&quot;)) {</span>
+<span class="nc" id="L58">            return Result.error(&quot;只允许上传图片文件&quot;);</span>
+        }
+
+<span class="nc" id="L61">        String objectName = UUID.randomUUID().toString() + &quot;.&quot; + suffix;</span>
+
+        try {
+<span class="nc" id="L64">            aliOssUtil.upload(file.getBytes(), objectName);</span>
+<span class="nc" id="L65">            String imageUrl = &quot;/api/common/download?name=&quot; + URLEncoder.encode(objectName, StandardCharsets.UTF_8.name());</span>
+<span class="nc" id="L66">            return Result.success(imageUrl);</span>
+<span class="nc" id="L67">        } catch (IOException ex) {</span>
+<span class="nc" id="L68">            log.error(&quot;文件上传失败&quot;, ex);</span>
+        }
+<span class="nc" id="L70">        return Result.error(MessageConstant.UPLOAD_FAILED);</span>
+    }
+
+    /**
+     * 文件下载（从 OSS 读取）
+     * @param name OSS 对象名，或当前 bucket 的完整 URL
+     */
+    @GetMapping(&quot;/download&quot;)
+    @ApiOperation(&quot;文件下载&quot;)
+    public void download(String name, HttpServletResponse response) {
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (!StringUtils.hasText(name)) {</span>
+<span class="nc" id="L81">            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);</span>
+<span class="nc" id="L82">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L86">            byte[] bytes = aliOssUtil.download(name);</span>
+<span class="nc bnc" id="L87" title="All 4 branches missed.">            if (bytes == null || bytes.length == 0) {</span>
+<span class="nc" id="L88">                response.setStatus(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L89">                return;</span>
+            }
+
+<span class="nc" id="L92">            response.setContentType(getContentType(name));</span>
+<span class="nc" id="L93">            response.setHeader(&quot;Cache-Control&quot;, &quot;public,max-age=86400&quot;);</span>
+<span class="nc" id="L94">            response.getOutputStream().write(bytes);</span>
+<span class="nc" id="L95">            response.getOutputStream().flush();</span>
+<span class="nc" id="L96">        } catch (IOException ex) {</span>
+<span class="nc" id="L97">            log.error(&quot;文件下载失败, name={}&quot;, name, ex);</span>
+<span class="nc" id="L98">            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L99">        }</span>
+<span class="nc" id="L100">    }</span>
+
+    private String getContentType(String name) {
+<span class="nc" id="L103">        String lower = name.toLowerCase();</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (lower.endsWith(&quot;.png&quot;)) {</span>
+<span class="nc" id="L105">            return &quot;image/png&quot;;</span>
+        }
+<span class="nc bnc" id="L107" title="All 4 branches missed.">        if (lower.endsWith(&quot;.jpg&quot;) || lower.endsWith(&quot;.jpeg&quot;)) {</span>
+<span class="nc" id="L108">            return &quot;image/jpeg&quot;;</span>
+        }
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (lower.endsWith(&quot;.gif&quot;)) {</span>
+<span class="nc" id="L111">            return &quot;image/gif&quot;;</span>
+        }
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (lower.endsWith(&quot;.webp&quot;)) {</span>
+<span class="nc" id="L114">            return &quot;image/webp&quot;;</span>
+        }
+<span class="nc" id="L116">        return &quot;application/octet-stream&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

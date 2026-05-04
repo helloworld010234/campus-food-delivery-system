@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenCommonController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.controller</a> &gt; <span class="el_source">OpenCommonController.java</span></div><h1>OpenCommonController.java</h1><pre class="source lang-java linenums">package com.sky.controller;
+
+import com.sky.utils.AliOssUtil;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+@RestController
+@Api(tags = &quot;开放资源接口&quot;)
+<span class="nc" id="L17">@Slf4j</span>
+<span class="nc" id="L18">public class OpenCommonController {</span>
+
+    @Autowired
+    private AliOssUtil aliOssUtil;
+
+    @GetMapping({&quot;/common/download&quot;, &quot;/api/common/download&quot;, &quot;/user/common/download&quot;})
+    @ApiOperation(&quot;公开文件下载&quot;)
+    public void download(String name, HttpServletResponse response) {
+<span class="nc bnc" id="L26" title="All 2 branches missed.">        if (!StringUtils.hasText(name)) {</span>
+<span class="nc" id="L27">            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);</span>
+<span class="nc" id="L28">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L32">            byte[] bytes = aliOssUtil.download(name);</span>
+<span class="nc bnc" id="L33" title="All 4 branches missed.">            if (bytes == null || bytes.length == 0) {</span>
+<span class="nc" id="L34">                response.setStatus(HttpServletResponse.SC_NOT_FOUND);</span>
+<span class="nc" id="L35">                return;</span>
+            }
+
+<span class="nc" id="L38">            response.setContentType(getContentType(name));</span>
+<span class="nc" id="L39">            response.setHeader(&quot;Cache-Control&quot;, &quot;public,max-age=86400&quot;);</span>
+<span class="nc" id="L40">            response.getOutputStream().write(bytes);</span>
+<span class="nc" id="L41">            response.getOutputStream().flush();</span>
+<span class="nc" id="L42">        } catch (IOException ex) {</span>
+<span class="nc" id="L43">            log.error(&quot;开放资源下载失败, name={}&quot;, name, ex);</span>
+<span class="nc" id="L44">            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L45">        }</span>
+<span class="nc" id="L46">    }</span>
+
+    private String getContentType(String name) {
+<span class="nc" id="L49">        String lower = name.toLowerCase();</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (lower.endsWith(&quot;.png&quot;)) {</span>
+<span class="nc" id="L51">            return &quot;image/png&quot;;</span>
+        }
+<span class="nc bnc" id="L53" title="All 4 branches missed.">        if (lower.endsWith(&quot;.jpg&quot;) || lower.endsWith(&quot;.jpeg&quot;)) {</span>
+<span class="nc" id="L54">            return &quot;image/jpeg&quot;;</span>
+        }
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (lower.endsWith(&quot;.gif&quot;)) {</span>
+<span class="nc" id="L57">            return &quot;image/gif&quot;;</span>
+        }
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (lower.endsWith(&quot;.webp&quot;)) {</span>
+<span class="nc" id="L60">            return &quot;image/webp&quot;;</span>
+        }
+<span class="nc" id="L62">        return &quot;application/octet-stream&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

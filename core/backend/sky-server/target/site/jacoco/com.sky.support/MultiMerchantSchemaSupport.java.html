@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MultiMerchantSchemaSupport.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.support</a> &gt; <span class="el_source">MultiMerchantSchemaSupport.java</span></div><h1>MultiMerchantSchemaSupport.java</h1><pre class="source lang-java linenums">package com.sky.support;
+
+import com.sky.properties.StorefrontProperties;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Component
+<span class="nc" id="L17">@Slf4j</span>
+<span class="nc" id="L18">public class MultiMerchantSchemaSupport {</span>
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private StorefrontProperties storefrontProperties;
+
+<span class="nc" id="L26">    private final Map&lt;String, Boolean&gt; tableCache = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="nc" id="L27">    private final Map&lt;String, Boolean&gt; columnCache = new ConcurrentHashMap&lt;&gt;();</span>
+
+    public boolean supportsCampusTable() {
+<span class="nc" id="L30">        return hasTable(&quot;campus&quot;);</span>
+    }
+
+    public boolean supportsMerchantTable() {
+<span class="nc" id="L34">        return hasTable(&quot;merchant&quot;);</span>
+    }
+
+    public boolean supportsEmployeeScope() {
+<span class="nc bnc" id="L38" title="All 4 branches missed.">        return hasColumn(&quot;employee&quot;, &quot;merchant_id&quot;) &amp;&amp; hasColumn(&quot;employee&quot;, &quot;account_type&quot;);</span>
+    }
+
+    public boolean supportsCategoryScope() {
+<span class="nc" id="L42">        return hasColumn(&quot;category&quot;, &quot;merchant_id&quot;);</span>
+    }
+
+    public boolean supportsDishScope() {
+<span class="nc" id="L46">        return hasColumn(&quot;dish&quot;, &quot;merchant_id&quot;);</span>
+    }
+
+    public boolean supportsSetmealScope() {
+<span class="nc" id="L50">        return hasColumn(&quot;setmeal&quot;, &quot;merchant_id&quot;);</span>
+    }
+
+    public boolean supportsShoppingCartScope() {
+<span class="nc" id="L54">        return hasColumn(&quot;shopping_cart&quot;, &quot;merchant_id&quot;);</span>
+    }
+
+    public boolean supportsOrdersScope() {
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        return hasColumn(&quot;orders&quot;, &quot;campus_id&quot;)</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">                &amp;&amp; hasColumn(&quot;orders&quot;, &quot;merchant_id&quot;)</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">                &amp;&amp; hasColumn(&quot;orders&quot;, &quot;merchant_name&quot;)</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">                &amp;&amp; hasColumn(&quot;orders&quot;, &quot;goods_amount&quot;)</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                &amp;&amp; hasColumn(&quot;orders&quot;, &quot;delivery_fee&quot;)</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">                &amp;&amp; hasColumn(&quot;orders&quot;, &quot;item_count&quot;);</span>
+    }
+
+    public boolean isCoreSchemaReady() {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        return supportsCampusTable()</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">                &amp;&amp; supportsMerchantTable()</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">                &amp;&amp; supportsEmployeeScope()</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">                &amp;&amp; supportsCategoryScope()</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">                &amp;&amp; supportsDishScope()</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">                &amp;&amp; supportsSetmealScope()</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">                &amp;&amp; supportsShoppingCartScope()</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">                &amp;&amp; supportsOrdersScope();</span>
+    }
+
+    public Long getDefaultMerchantId() {
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        return storefrontProperties.getShopId() == null ? 1L : storefrontProperties.getShopId();</span>
+    }
+
+    public String getReadinessSummary() {
+<span class="nc" id="L82">        return &quot;campus=&quot; + supportsCampusTable()</span>
+<span class="nc" id="L83">                + &quot;, merchant=&quot; + supportsMerchantTable()</span>
+<span class="nc" id="L84">                + &quot;, employeeScope=&quot; + supportsEmployeeScope()</span>
+<span class="nc" id="L85">                + &quot;, categoryScope=&quot; + supportsCategoryScope()</span>
+<span class="nc" id="L86">                + &quot;, dishScope=&quot; + supportsDishScope()</span>
+<span class="nc" id="L87">                + &quot;, setmealScope=&quot; + supportsSetmealScope()</span>
+<span class="nc" id="L88">                + &quot;, cartScope=&quot; + supportsShoppingCartScope()</span>
+<span class="nc" id="L89">                + &quot;, ordersScope=&quot; + supportsOrdersScope();</span>
+    }
+
+    public boolean hasTable(String tableName) {
+<span class="nc" id="L93">        return tableCache.computeIfAbsent(tableName.toLowerCase(), this::detectTable);</span>
+    }
+
+    public boolean hasColumn(String tableName, String columnName) {
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (!hasTable(tableName)) {</span>
+<span class="nc" id="L98">            return false;</span>
+        }
+<span class="nc" id="L100">        String cacheKey = tableName.toLowerCase() + &quot;.&quot; + columnName.toLowerCase();</span>
+<span class="nc" id="L101">        return columnCache.computeIfAbsent(cacheKey, key -&gt; detectColumn(tableName, columnName));</span>
+    }
+
+    private boolean detectTable(String tableName) {
+<span class="nc" id="L105">        try (Connection connection = dataSource.getConnection()) {</span>
+<span class="nc" id="L106">            DatabaseMetaData metaData = connection.getMetaData();</span>
+<span class="nc" id="L107">            String catalog = connection.getCatalog();</span>
+<span class="nc" id="L108">            return existsTable(metaData, catalog, tableName);</span>
+<span class="nc" id="L109">        } catch (SQLException ex) {</span>
+<span class="nc" id="L110">            log.warn(&quot;Failed to inspect table {} readiness, fallback to false&quot;, tableName, ex);</span>
+<span class="nc" id="L111">            return false;</span>
+        }
+    }
+
+    private boolean detectColumn(String tableName, String columnName) {
+<span class="nc" id="L116">        try (Connection connection = dataSource.getConnection()) {</span>
+<span class="nc" id="L117">            DatabaseMetaData metaData = connection.getMetaData();</span>
+<span class="nc" id="L118">            String catalog = connection.getCatalog();</span>
+<span class="nc" id="L119">            return existsColumn(metaData, catalog, tableName, columnName);</span>
+<span class="nc" id="L120">        } catch (SQLException ex) {</span>
+<span class="nc" id="L121">            log.warn(&quot;Failed to inspect column {}.{} readiness, fallback to false&quot;, tableName, columnName, ex);</span>
+<span class="nc" id="L122">            return false;</span>
+        }
+    }
+
+    private boolean existsTable(DatabaseMetaData metaData, String catalog, String tableName) throws SQLException {
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        return existsTable(metaData, catalog, tableName, &quot;TABLE&quot;)</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">                || existsTable(metaData, catalog, tableName.toUpperCase(), &quot;TABLE&quot;)</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                || existsTable(metaData, catalog, tableName.toLowerCase(), &quot;TABLE&quot;);</span>
+    }
+
+    private boolean existsTable(DatabaseMetaData metaData, String catalog, String tableName, String type) throws SQLException {
+<span class="nc" id="L133">        try (ResultSet resultSet = metaData.getTables(catalog, null, tableName, new String[]{type})) {</span>
+<span class="nc" id="L134">            return resultSet.next();</span>
+        }
+    }
+
+    private boolean existsColumn(DatabaseMetaData metaData, String catalog, String tableName, String columnName) throws SQLException {
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        return existsColumn(metaData, catalog, tableName, columnName, false)</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">                || existsColumn(metaData, catalog, tableName.toUpperCase(), columnName.toUpperCase(), true)</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">                || existsColumn(metaData, catalog, tableName.toLowerCase(), columnName.toLowerCase(), true);</span>
+    }
+
+    private boolean existsColumn(DatabaseMetaData metaData, String catalog, String tableName, String columnName, boolean exact) throws SQLException {
+<span class="nc" id="L145">        try (ResultSet resultSet = metaData.getColumns(catalog, null, tableName, columnName)) {</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">            if (!resultSet.next()) {</span>
+<span class="nc" id="L147">                return false;</span>
+            }
+<span class="nc bnc" id="L149" title="All 2 branches missed.">            if (exact) {</span>
+<span class="nc" id="L150">                return true;</span>
+            }
+<span class="nc" id="L152">            String actualColumnName = resultSet.getString(&quot;COLUMN_NAME&quot;);</span>
+<span class="nc bnc" id="L153" title="All 4 branches missed.">            return actualColumnName != null &amp;&amp; actualColumnName.equalsIgnoreCase(columnName);</span>
+<span class="nc bnc" id="L154" title="All 4 branches missed.">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

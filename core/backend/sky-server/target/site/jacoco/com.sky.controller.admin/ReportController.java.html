@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReportController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sky-server</a> &gt; <a href="index.source.html" class="el_package">com.sky.controller.admin</a> &gt; <span class="el_source">ReportController.java</span></div><h1>ReportController.java</h1><pre class="source lang-java linenums">package com.sky.controller.admin;
+
+import com.sky.result.Result;
+import com.sky.service.ReportService;
+import com.sky.vo.OrderReportVO;
+import com.sky.vo.SalesTop10ReportVO;
+import com.sky.vo.TurnoverReportVO;
+import com.sky.vo.UserReportVO;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.servlet.http.HttpServletResponse;
+import java.time.LocalDate;
+
+
+/**
+ * @author Mark
+ * @date 2024/2/25
+ */
+
+@RestController
+@RequestMapping(&quot;/admin/report&quot;)
+@Api(tags = &quot;数据统计相关接口&quot;)
+<span class="nc" id="L30">@Slf4j</span>
+<span class="nc" id="L31">public class ReportController {</span>
+
+    @Autowired
+    private ReportService reportService;
+
+    /**
+     * 营业额统计
+     * @return
+     */
+    @GetMapping(&quot;/turnoverStatistics&quot;)
+    @ApiOperation(&quot;营业额统计&quot;)
+    public Result&lt;TurnoverReportVO&gt; turnoverStatistics(
+            @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;)  LocalDate begin,
+            @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;) LocalDate end){
+<span class="nc" id="L45">        log.info(&quot;营业额数据统计：{},{}&quot;,begin,end);</span>
+<span class="nc" id="L46">        return Result.success(reportService.getTurnoverStatistics(begin, end));</span>
+    }
+
+    /**
+     * 用户数量统计
+     * @param begin
+     * @param end
+     * @return
+     */
+    @GetMapping(&quot;/userStatistics&quot;)
+    @ApiOperation(&quot;用户数量统计&quot;)
+    public Result&lt;UserReportVO&gt; userStatistics(@DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;)  LocalDate begin,
+                                               @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;) LocalDate end){
+<span class="nc" id="L59">        return Result.success(reportService.getUserSratistics(begin, end));</span>
+    }
+
+    /**
+     * 订单统计
+     * @param begin
+     * @param end
+     * @return
+     */
+    @GetMapping(&quot;/ordersStatistics&quot;)
+    @ApiOperation(&quot;订单统计&quot;)
+    public Result&lt;OrderReportVO&gt; ordersStatistics(
+            @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;)  LocalDate begin,
+            @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;) LocalDate end) {
+<span class="nc" id="L73">        log.info(&quot;订单数据统计：{},{}&quot;, begin, end);</span>
+<span class="nc" id="L74">        return Result.success(reportService.getOrderStatistics(begin, end));</span>
+    }
+
+
+    /**
+     * 获取销量前十的菜品
+     * @param begin
+     * @param end
+     * @return
+     */
+    @GetMapping(&quot;/top10&quot;)
+    @ApiOperation(&quot;获取销量前十的菜品&quot;)
+    public Result&lt;SalesTop10ReportVO&gt; top10(@DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;)  LocalDate begin,
+                                            @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;) LocalDate end){
+<span class="nc" id="L88">        return Result.success(reportService.getSalesTop10(begin,end));</span>
+    }
+
+    /**
+     * 导出数据
+     * @param response
+     */
+    @GetMapping(&quot;/export&quot;)
+    @ApiOperation(&quot;导出数据&quot;)
+    public void export(HttpServletResponse response) throws Exception{
+<span class="nc" id="L98">        reportService.exportData(response);</span>
+<span class="nc" id="L99">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

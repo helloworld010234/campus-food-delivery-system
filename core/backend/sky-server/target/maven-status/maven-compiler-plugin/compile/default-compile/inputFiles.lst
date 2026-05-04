@@ -41,6 +41,7 @@ D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\mapper\ReportMappe
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\mapper\SetmealDishMapper.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\mapper\SetmealMapper.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\mapper\ShoppingCartMapper.java
+D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\mapper\TokenBlacklistMapper.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\mapper\UserMapper.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\AddressBookService.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\CampusService.java
@@ -61,6 +62,7 @@ D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\impl\Repor
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\impl\SetMealDishServiceImpl.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\impl\SetmealServiceImpl.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\impl\ShoppingCartServiceImpl.java
+D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\impl\TokenBlacklistServiceImpl.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\impl\UserServiceImpl.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\impl\WorkspaceServiceImpl.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\MerchantService.java
@@ -70,6 +72,7 @@ D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\ReportServ
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\SetMealDishService.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\SetmealService.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\ShoppingCartService.java
+D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\TokenBlacklistService.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\UserService.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\service\WorkspaceService.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\SkyApplication.java
@@ -79,4 +82,5 @@ D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\task\OrderTask.jav
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\task\WebSocketTask.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\utils\MerchantScopeUtils.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\utils\StorefrontImageResolver.java
+D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\websocket\WebSocketAuthConfigurator.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\websocket\WebSocketServer.java
