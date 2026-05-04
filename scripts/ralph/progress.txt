@@ -1,8 +1,5 @@
-2026-05-04 Ralph Loop initialized for paper-only thesis upgrade.
-US-001 marked passing because PRD, prd.json, required gates, and memory files were created/reset.
-US-002 marked passing after findings.md captured evidence sources, code evidence areas, upgrade map, and claims to avoid.
-User requested no rendering; render/page-PNG gates were replaced with non-render DOCX QA gates.
-US-003 marked passing after staged-content.md was created and forbidden phrase scan returned no matches.
-US-004 marked passing after generating C:\Users\g'y'c\Desktop\毕业论文\初稿1-升级版.docx as a separate copy and confirming original hash unchanged.
-US-005 marked passing after non-render QA passed and required gates were updated.
-Ralph thesis upgrade artifacts committed as 968a5ea docs: add Ralph thesis upgrade artifacts.
+2026-05-05 Ralph Loop initialized for multi-merchant isolation hardening.
+Archived previous thesis run artifacts to scripts/ralph/archive/2026-05-05-thesis-upgrade/.
+Source PRD prepared at tasks/prd-multi-merchant-isolation.md.
+Converted PRD to scripts/ralph/prd.json with ordered US-001..US-007 for ECC-style execution.
+All new stories start with passes=false pending implementation evidence.
