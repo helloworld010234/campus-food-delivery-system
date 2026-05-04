@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.sky.controller.admin.EmployeeControllerTest
 -------------------------------------------------------------------------------
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.833 s -- in com.sky.controller.admin.EmployeeControllerTest
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.306 s -- in com.sky.controller.admin.EmployeeControllerTest

@@ -6,6 +6,7 @@ import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.properties.JwtProperties;
 import com.sky.service.OrderService;
+import com.sky.service.TokenBlacklistService;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class OrderControllerTest {
 
     @MockitoBean
     private JwtProperties jwtProperties;
+
+    @MockitoBean
+    private TokenBlacklistService tokenBlacklistService;
 
     @Autowired
     private ObjectMapper objectMapper;

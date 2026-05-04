@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController(&quot;userDishController&quot;)
 @RequestMapping(&quot;/user/dish&quot;)
-<span class="nc" id="L19">public class DishController {</span>
+<span class="fc" id="L19">public class DishController {</span>
 
     @Autowired
     private DishService dishService;
@@ -29,28 +29,28 @@ import java.util.List;
 
     @GetMapping(&quot;/list&quot;)
     public Result&lt;List&lt;DishVO&gt;&gt; list(Long categoryId, Long merchantId) {
-<span class="nc" id="L32">        Long resolvedMerchantId = resolveMerchantId(merchantId);</span>
-<span class="nc" id="L33">        String cacheKey = &quot;dish_&quot; + resolvedMerchantId + &quot;_&quot; + categoryId;</span>
-<span class="nc" id="L34">        List&lt;DishVO&gt; list = (List&lt;DishVO&gt;) redisTemplate.opsForValue().get(cacheKey);</span>
-<span class="nc bnc" id="L35" title="All 4 branches missed.">        if (list != null &amp;&amp; !list.isEmpty()) {</span>
-<span class="nc" id="L36">            return Result.success(list);</span>
+<span class="fc" id="L32">        Long resolvedMerchantId = resolveMerchantId(merchantId);</span>
+<span class="fc" id="L33">        String cacheKey = &quot;dish_&quot; + resolvedMerchantId + &quot;_&quot; + categoryId;</span>
+<span class="fc" id="L34">        List&lt;DishVO&gt; list = (List&lt;DishVO&gt;) redisTemplate.opsForValue().get(cacheKey);</span>
+<span class="pc bpc" id="L35" title="1 of 4 branches missed.">        if (list != null &amp;&amp; !list.isEmpty()) {</span>
+<span class="fc" id="L36">            return Result.success(list);</span>
         }
 
-<span class="nc" id="L39">        Dish dish = Dish.builder()</span>
-<span class="nc" id="L40">                .merchantId(resolvedMerchantId)</span>
-<span class="nc" id="L41">                .categoryId(categoryId)</span>
-<span class="nc" id="L42">                .status(StatusConstant.ENABLE)</span>
-<span class="nc" id="L43">                .build();</span>
-<span class="nc" id="L44">        list = dishService.listWithFlavor(dish);</span>
-<span class="nc" id="L45">        redisTemplate.opsForValue().set(cacheKey, list);</span>
-<span class="nc" id="L46">        return Result.success(list);</span>
+<span class="fc" id="L39">        Dish dish = Dish.builder()</span>
+<span class="fc" id="L40">                .merchantId(resolvedMerchantId)</span>
+<span class="fc" id="L41">                .categoryId(categoryId)</span>
+<span class="fc" id="L42">                .status(StatusConstant.ENABLE)</span>
+<span class="fc" id="L43">                .build();</span>
+<span class="fc" id="L44">        list = dishService.listWithFlavor(dish);</span>
+<span class="fc" id="L45">        redisTemplate.opsForValue().set(cacheKey, list);</span>
+<span class="fc" id="L46">        return Result.success(list);</span>
     }
 
     private Long resolveMerchantId(Long merchantId) {
-<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (merchantId != null) {</span>
-<span class="nc" id="L51">            return merchantId;</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (merchantId != null) {</span>
+<span class="fc" id="L51">            return merchantId;</span>
         }
-<span class="nc" id="L53">        return merchantService.getFirstEnabledMerchant(null).getId();</span>
+<span class="fc" id="L53">        return merchantService.getFirstEnabledMerchant(null).getId();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

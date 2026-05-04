@@ -24,7 +24,7 @@ import java.util.Set;
 
 @RestController
 @RequestMapping(&quot;/admin/dish&quot;)
-<span class="nc" id="L27">public class DishController {</span>
+<span class="fc" id="L27">public class DishController {</span>
     @Autowired
     private DishService dishService;
 
@@ -39,9 +39,9 @@ import java.util.Set;
     @PostMapping
     @ApiOperation(&quot;新增菜品&quot;)
     public Result&lt;String&gt; save(@RequestBody DishDTO dishDTO){
-<span class="nc" id="L42">        dishService.saveWithFlavor(dishDTO);</span>
-<span class="nc" id="L43">        cleanCache(&quot;dish_*&quot;);</span>
-<span class="nc" id="L44">        return Result.success();</span>
+<span class="fc" id="L42">        dishService.saveWithFlavor(dishDTO);</span>
+<span class="fc" id="L43">        cleanCache(&quot;dish_*&quot;);</span>
+<span class="fc" id="L44">        return Result.success();</span>
     }
 
     /**
@@ -51,8 +51,8 @@ import java.util.Set;
     @GetMapping(&quot;/page&quot;)
     @ApiOperation(&quot;菜品分页查询&quot;)
     public Result&lt;PageResult&gt; page(DishPageQueryDTO queryDTO){
-<span class="nc" id="L54">        PageResult pageResult = dishService.page(queryDTO);</span>
-<span class="nc" id="L55">        return Result.success(pageResult);</span>
+<span class="fc" id="L54">        PageResult pageResult = dishService.page(queryDTO);</span>
+<span class="fc" id="L55">        return Result.success(pageResult);</span>
     }
 
     /**
@@ -91,7 +91,7 @@ import java.util.Set;
     @GetMapping(&quot;/{id}&quot;)
     @ApiOperation(&quot;根据id查询菜品和相关联的口味数据&quot;)
     public Result&lt;DishVO&gt; getById(@PathVariable Long id){
-<span class="nc" id="L94">        return Result.success(dishService.getByIdWithFlavor(id));</span>
+<span class="fc" id="L94">        return Result.success(dishService.getByIdWithFlavor(id));</span>
     }
 
     /**
@@ -120,8 +120,8 @@ import java.util.Set;
     }
 
     private void cleanCache(String pattern){
-<span class="nc" id="L123">        Set keys = redisTemplate.keys(pattern);</span>
-<span class="nc" id="L124">        redisTemplate.delete(keys);</span>
-<span class="nc" id="L125">    }</span>
+<span class="fc" id="L123">        Set keys = redisTemplate.keys(pattern);</span>
+<span class="fc" id="L124">        redisTemplate.delete(keys);</span>
+<span class="fc" id="L125">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

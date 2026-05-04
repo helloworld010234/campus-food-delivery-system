@@ -11,27 +11,27 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-<span class="nc" id="L14">@Slf4j</span>
+<span class="fc" id="L14">@Slf4j</span>
 @ServerEndpoint(value = &quot;/ws/{sid}&quot;, configurator = WebSocketAuthConfigurator.class)
-<span class="nc" id="L16">public class WebSocketServer {</span>
+<span class="fc" id="L16">public class WebSocketServer {</span>
 
-<span class="nc" id="L18">    private static final Map&lt;String, Session&gt; SESSION_MAP = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L18">    private static final Map&lt;String, Session&gt; SESSION_MAP = new ConcurrentHashMap&lt;&gt;();</span>
 
     @OnOpen
     public void onOpen(Session session, @PathParam(&quot;sid&quot;) String sid, EndpointConfig config) {
-<span class="nc" id="L22">        Long empId = (Long) config.getUserProperties().get(&quot;empId&quot;);</span>
-<span class="nc bnc" id="L23" title="All 4 branches missed.">        if (empId == null || !String.valueOf(empId).equals(sid)) {</span>
-<span class="nc" id="L24">            log.warn(&quot;WebSocket connection rejected: empId={} does not match sid={}&quot;, empId, sid);</span>
+<span class="fc" id="L22">        Long empId = (Long) config.getUserProperties().get(&quot;empId&quot;);</span>
+<span class="fc bfc" id="L23" title="All 4 branches covered.">        if (empId == null || !String.valueOf(empId).equals(sid)) {</span>
+<span class="fc" id="L24">            log.warn(&quot;WebSocket connection rejected: empId={} does not match sid={}&quot;, empId, sid);</span>
             try {
-<span class="nc" id="L26">                session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, &quot;Unauthorized&quot;));</span>
+<span class="fc" id="L26">                session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, &quot;Unauthorized&quot;));</span>
 <span class="nc" id="L27">            } catch (Exception e) {</span>
 <span class="nc" id="L28">                log.error(&quot;Failed to close unauthorized WebSocket session, sid={}&quot;, sid, e);</span>
-<span class="nc" id="L29">            }</span>
-<span class="nc" id="L30">            return;</span>
+<span class="fc" id="L29">            }</span>
+<span class="fc" id="L30">            return;</span>
         }
-<span class="nc" id="L32">        SESSION_MAP.put(sid, session);</span>
-<span class="nc" id="L33">        log.info(&quot;WebSocket connection established, sid={}&quot;, sid);</span>
-<span class="nc" id="L34">    }</span>
+<span class="fc" id="L32">        SESSION_MAP.put(sid, session);</span>
+<span class="fc" id="L33">        log.info(&quot;WebSocket connection established, sid={}&quot;, sid);</span>
+<span class="fc" id="L34">    }</span>
 
     @OnMessage
     public void onMessage(String message, @PathParam(&quot;sid&quot;) String sid) {
@@ -40,32 +40,32 @@ import java.util.concurrent.ConcurrentHashMap;
 
     @OnClose
     public void onClose(@PathParam(&quot;sid&quot;) String sid) {
-<span class="nc" id="L43">        SESSION_MAP.remove(sid);</span>
-<span class="nc" id="L44">        log.info(&quot;WebSocket connection closed, sid={}&quot;, sid);</span>
-<span class="nc" id="L45">    }</span>
+<span class="fc" id="L43">        SESSION_MAP.remove(sid);</span>
+<span class="fc" id="L44">        log.info(&quot;WebSocket connection closed, sid={}&quot;, sid);</span>
+<span class="fc" id="L45">    }</span>
 
     public void sendToAllClient(String message) {
-<span class="nc" id="L48">        Collection&lt;Session&gt; sessions = SESSION_MAP.values();</span>
-<span class="nc bnc" id="L49" title="All 2 branches missed.">        for (Session session : sessions) {</span>
+<span class="fc" id="L48">        Collection&lt;Session&gt; sessions = SESSION_MAP.values();</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        for (Session session : sessions) {</span>
             try {
 <span class="nc" id="L51">                session.getBasicRemote().sendText(message);</span>
-<span class="nc" id="L52">            } catch (Exception e) {</span>
-<span class="nc" id="L53">                log.error(&quot;Failed to broadcast WebSocket message&quot;, e);</span>
+<span class="fc" id="L52">            } catch (Exception e) {</span>
+<span class="fc" id="L53">                log.error(&quot;Failed to broadcast WebSocket message&quot;, e);</span>
 <span class="nc" id="L54">            }</span>
-<span class="nc" id="L55">        }</span>
-<span class="nc" id="L56">    }</span>
+<span class="fc" id="L55">        }</span>
+<span class="fc" id="L56">    }</span>
 
     public void sendToClient(String sid, String message) {
-<span class="nc" id="L59">        Session session = SESSION_MAP.get(sid);</span>
-<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (session == null) {</span>
-<span class="nc" id="L61">            log.warn(&quot;No WebSocket session found for sid={}&quot;, sid);</span>
-<span class="nc" id="L62">            return;</span>
+<span class="fc" id="L59">        Session session = SESSION_MAP.get(sid);</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        if (session == null) {</span>
+<span class="fc" id="L61">            log.warn(&quot;No WebSocket session found for sid={}&quot;, sid);</span>
+<span class="fc" id="L62">            return;</span>
         }
         try {
-<span class="nc" id="L65">            session.getBasicRemote().sendText(message);</span>
-<span class="nc" id="L66">        } catch (Exception e) {</span>
-<span class="nc" id="L67">            log.error(&quot;Failed to send WebSocket message to sid={}&quot;, sid, e);</span>
-<span class="nc" id="L68">        }</span>
-<span class="nc" id="L69">    }</span>
+<span class="fc" id="L65">            session.getBasicRemote().sendText(message);</span>
+<span class="fc" id="L66">        } catch (Exception e) {</span>
+<span class="fc" id="L67">            log.error(&quot;Failed to send WebSocket message to sid={}&quot;, sid, e);</span>
+<span class="fc" id="L68">        }</span>
+<span class="fc" id="L69">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

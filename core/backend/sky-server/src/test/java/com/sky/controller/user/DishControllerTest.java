@@ -6,6 +6,7 @@ import com.sky.properties.JwtProperties;
 import com.sky.result.Result;
 import com.sky.service.DishService;
 import com.sky.service.MerchantService;
+import com.sky.service.TokenBlacklistService;
 import com.sky.vo.DishVO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,9 @@ class DishControllerTest {
 
     @MockBean
     private JwtProperties jwtProperties;
+
+    @MockBean
+    private TokenBlacklistService tokenBlacklistService;
 
     @Test
     void list_shouldReturnDishesFromCache_whenCacheHit() throws Exception {

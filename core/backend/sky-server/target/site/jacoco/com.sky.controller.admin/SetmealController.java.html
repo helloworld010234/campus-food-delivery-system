@@ -21,7 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping(&quot;/admin/setmeal&quot;)
 @ApiOperation(&quot;套餐管理&quot;)
-<span class="nc" id="L24">public class SetmealController {</span>
+<span class="fc" id="L24">public class SetmealController {</span>
 
     @Autowired
     private SetmealService setmealService;
@@ -34,8 +34,8 @@ import java.util.List;
     @GetMapping(&quot;/page&quot;)
     @ApiOperation(&quot;套餐分页查询&quot;)
     public Result&lt;PageResult&gt; page(SetmealPageQueryDTO setmealPageQueryDTO){
-<span class="nc" id="L37">        PageResult pageResult = setmealService.pageQuery(setmealPageQueryDTO);</span>
-<span class="nc" id="L38">        return Result.success(pageResult);</span>
+<span class="fc" id="L37">        PageResult pageResult = setmealService.pageQuery(setmealPageQueryDTO);</span>
+<span class="fc" id="L38">        return Result.success(pageResult);</span>
     }
 
     /**
@@ -47,8 +47,8 @@ import java.util.List;
     @CacheEvict(cacheNames = &quot;setmealCache&quot;, allEntries = true)
     @ApiOperation(&quot;新增套餐&quot;)
     public Result save(@RequestBody SetmealDTO setmealDTO){
-<span class="nc" id="L50">        setmealService.saveWithDish(setmealDTO);</span>
-<span class="nc" id="L51">        return Result.success();</span>
+<span class="fc" id="L50">        setmealService.saveWithDish(setmealDTO);</span>
+<span class="fc" id="L51">        return Result.success();</span>
     }
 
     /**
@@ -85,8 +85,8 @@ import java.util.List;
     @GetMapping(&quot;/{id}&quot;)
     @ApiOperation(&quot;根据id查询套餐&quot;)
     public Result&lt;SetmealVO&gt; getById(@PathVariable Long id){
-<span class="nc" id="L88">        SetmealVO setmealVO = setmealService.getByIdWithDish(id);</span>
-<span class="nc" id="L89">        return Result.success(setmealVO);</span>
+<span class="fc" id="L88">        SetmealVO setmealVO = setmealService.getByIdWithDish(id);</span>
+<span class="fc" id="L89">        return Result.success(setmealVO);</span>
     }
 
     /**

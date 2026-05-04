@@ -24,9 +24,9 @@ import java.util.Map;
  * @date 2024/2/15
  */
 
-<span class="nc" id="L27">@Slf4j</span>
+<span class="fc" id="L27">@Slf4j</span>
 @Service
-<span class="nc" id="L29">public class UserServiceImpl implements UserService {</span>
+<span class="fc" id="L29">public class UserServiceImpl implements UserService {</span>
     public static final String WX_LOGIN = &quot;https://api.weixin.qq.com/sns/jscode2session&quot;;
 
     @Autowired
@@ -44,25 +44,25 @@ import java.util.Map;
     @Override
     public User wxLogin(UserLoginDTO userLoginDTO) {
         String openId;
-<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (Boolean.TRUE.equals(storefrontProperties.getMockUserLogin())) {</span>
-<span class="nc" id="L48">            openId = buildMockOpenId(userLoginDTO.getCode());</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">        if (Boolean.TRUE.equals(storefrontProperties.getMockUserLogin())) {</span>
+<span class="fc" id="L48">            openId = buildMockOpenId(userLoginDTO.getCode());</span>
         } else {
-<span class="nc" id="L50">            openId = getOpenId(userLoginDTO.getCode());</span>
+<span class="fc" id="L50">            openId = getOpenId(userLoginDTO.getCode());</span>
         }
 
-<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (openId == null){</span>
-<span class="nc" id="L54">            throw new LoginFailedException(MessageConstant.LOGIN_FAILED);</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (openId == null){</span>
+<span class="fc" id="L54">            throw new LoginFailedException(MessageConstant.LOGIN_FAILED);</span>
         }
 
-<span class="nc" id="L57">        User user = userMapper.getByOpenId(openId);</span>
+<span class="fc" id="L57">        User user = userMapper.getByOpenId(openId);</span>
 
-<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (user == null){</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (user == null){</span>
             // 新用户
-<span class="nc" id="L61">            user = User.builder().openid(openId)</span>
-<span class="nc" id="L62">                    .createTime(LocalDateTime.now()).build();</span>
-<span class="nc" id="L63">            userMapper.insert(user);</span>
+<span class="fc" id="L61">            user = User.builder().openid(openId)</span>
+<span class="fc" id="L62">                    .createTime(LocalDateTime.now()).build();</span>
+<span class="fc" id="L63">            userMapper.insert(user);</span>
         }
-<span class="nc" id="L65">        return user;</span>
+<span class="fc" id="L65">        return user;</span>
     }
 
     /**
@@ -71,33 +71,33 @@ import java.util.Map;
      * @return
      */
     private String getOpenId(String code){
-<span class="nc bnc" id="L74" title="All 4 branches missed.">        if (code == null || code.trim().isEmpty()) {</span>
-<span class="nc" id="L75">            return null;</span>
+<span class="pc bpc" id="L74" title="1 of 4 branches missed.">        if (code == null || code.trim().isEmpty()) {</span>
+<span class="fc" id="L75">            return null;</span>
         }
 
-<span class="nc" id="L78">        Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L79">        map.put(&quot;appid&quot;, weChatProperties.getAppid());</span>
-<span class="nc" id="L80">        map.put(&quot;secret&quot;, weChatProperties.getSecret());</span>
-<span class="nc" id="L81">        map.put(&quot;js_code&quot;, code);</span>
-<span class="nc" id="L82">        map.put(&quot;grant_type&quot;, &quot;authorization_code&quot;);</span>
+<span class="fc" id="L78">        Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L79">        map.put(&quot;appid&quot;, weChatProperties.getAppid());</span>
+<span class="fc" id="L80">        map.put(&quot;secret&quot;, weChatProperties.getSecret());</span>
+<span class="fc" id="L81">        map.put(&quot;js_code&quot;, code);</span>
+<span class="fc" id="L82">        map.put(&quot;grant_type&quot;, &quot;authorization_code&quot;);</span>
 
-<span class="nc" id="L84">        String json = HttpClientUtil.doGet(WX_LOGIN, map);</span>
+<span class="fc" id="L84">        String json = HttpClientUtil.doGet(WX_LOGIN, map);</span>
 
         try {
-<span class="nc" id="L87">            JsonNode jsonObject = objectMapper.readTree(json);</span>
-<span class="nc" id="L88">            String openid = jsonObject.get(&quot;openid&quot;).asText();</span>
-<span class="nc" id="L89">            return openid;</span>
-<span class="nc" id="L90">        } catch (Exception e) {</span>
-<span class="nc" id="L91">            log.error(&quot;获取openid失败&quot;, e);</span>
-<span class="nc" id="L92">            return null;</span>
+<span class="fc" id="L87">            JsonNode jsonObject = objectMapper.readTree(json);</span>
+<span class="fc" id="L88">            String openid = jsonObject.get(&quot;openid&quot;).asText();</span>
+<span class="fc" id="L89">            return openid;</span>
+<span class="fc" id="L90">        } catch (Exception e) {</span>
+<span class="fc" id="L91">            log.error(&quot;获取openid失败&quot;, e);</span>
+<span class="fc" id="L92">            return null;</span>
         }
     }
 
     private String buildMockOpenId(String code) {
-<span class="nc bnc" id="L97" title="All 4 branches missed.">        if (code == null || code.trim().isEmpty()) {</span>
-<span class="nc" id="L98">            return &quot;mock-openid-default&quot;;</span>
+<span class="fc bfc" id="L97" title="All 4 branches covered.">        if (code == null || code.trim().isEmpty()) {</span>
+<span class="fc" id="L98">            return &quot;mock-openid-default&quot;;</span>
         }
-<span class="nc" id="L100">        return &quot;mock-openid-&quot; + code.trim();</span>
+<span class="fc" id="L100">        return &quot;mock-openid-&quot; + code.trim();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

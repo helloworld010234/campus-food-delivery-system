@@ -21,14 +21,14 @@ import java.time.LocalDateTime;
 
 @RestController(&quot;userOrder&quot;)
 @RequestMapping(&quot;/user/order&quot;)
-<span class="nc" id="L24">public class OrderController {</span>
+<span class="fc" id="L24">public class OrderController {</span>
 
     @Autowired
     private OrderService orderService;
 
     @PostMapping(&quot;/submit&quot;)
     public Result&lt;OrderSubmitVO&gt; submit(@RequestBody OrdersSubmitDTO ordersSubmitDTO) {
-<span class="nc" id="L31">        return Result.success(orderService.submitOrder(ordersSubmitDTO));</span>
+<span class="fc" id="L31">        return Result.success(orderService.submitOrder(ordersSubmitDTO));</span>
     }
 
     @PutMapping(&quot;/payment&quot;)
@@ -38,7 +38,7 @@ import java.time.LocalDateTime;
 
     @GetMapping(&quot;/historyOrders&quot;)
     public Result&lt;PageResult&gt; page(int page, int pageSize, Integer status) {
-<span class="nc" id="L41">        return Result.success(orderService.pageQueryUser(page, pageSize, status, null));</span>
+<span class="fc" id="L41">        return Result.success(orderService.pageQueryUser(page, pageSize, status, null));</span>
     }
 
     @GetMapping(&quot;/queryOrdersCheckStatus&quot;)
@@ -53,7 +53,7 @@ import java.time.LocalDateTime;
 
     @GetMapping(&quot;/orderDetail/{id}&quot;)
     public Result&lt;OrderVO&gt; details(@PathVariable Long id) {
-<span class="nc" id="L56">        return Result.success(orderService.detail(id));</span>
+<span class="fc" id="L56">        return Result.success(orderService.detail(id));</span>
     }
 
     @PutMapping(&quot;/cancel/{id}&quot;)

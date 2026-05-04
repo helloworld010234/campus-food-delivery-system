@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-<span class="nc" id="L32">public class DishServiceImpl implements DishService {</span>
+<span class="fc" id="L32">public class DishServiceImpl implements DishService {</span>
 
     @Autowired
     private DishMapper dishMapper;
@@ -52,26 +52,26 @@ import java.util.List;
     @Override
     @Transactional
     public void saveWithFlavor(DishDTO dishDTO) {
-<span class="nc bnc" id="L55" title="All 2 branches missed.">        Long merchantId = schemaSupport.supportsDishScope()</span>
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">        Long merchantId = schemaSupport.supportsDishScope()</span>
 <span class="nc" id="L56">                ? MerchantScopeUtils.resolveRequiredMerchantId(dishDTO.getMerchantId())</span>
-<span class="nc" id="L57">                : null;</span>
-<span class="nc" id="L58">        validateCategoryOwnership(dishDTO.getCategoryId(), merchantId);</span>
+<span class="fc" id="L57">                : null;</span>
+<span class="fc" id="L58">        validateCategoryOwnership(dishDTO.getCategoryId(), merchantId);</span>
 
-<span class="nc" id="L60">        Dish dish = new Dish();</span>
-<span class="nc" id="L61">        BeanUtils.copyProperties(dishDTO, dish);</span>
-<span class="nc" id="L62">        dish.setMerchantId(merchantId);</span>
-<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (schemaSupport.supportsDishScope()) {</span>
+<span class="fc" id="L60">        Dish dish = new Dish();</span>
+<span class="fc" id="L61">        BeanUtils.copyProperties(dishDTO, dish);</span>
+<span class="fc" id="L62">        dish.setMerchantId(merchantId);</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (schemaSupport.supportsDishScope()) {</span>
 <span class="nc" id="L64">            dishMapper.insert(dish);</span>
         } else {
-<span class="nc" id="L66">            dishMapper.insertLegacy(dish);</span>
+<span class="fc" id="L66">            dishMapper.insertLegacy(dish);</span>
         }
 
-<span class="nc" id="L69">        List&lt;DishFlavor&gt; flavors = dishDTO.getFlavors();</span>
-<span class="nc bnc" id="L70" title="All 4 branches missed.">        if (flavors != null &amp;&amp; !flavors.isEmpty()) {</span>
-<span class="nc" id="L71">            flavors.forEach(item -&gt; item.setDishId(dish.getId()));</span>
-<span class="nc" id="L72">            dishMapper.insertBatch(flavors);</span>
+<span class="fc" id="L69">        List&lt;DishFlavor&gt; flavors = dishDTO.getFlavors();</span>
+<span class="pc bpc" id="L70" title="1 of 4 branches missed.">        if (flavors != null &amp;&amp; !flavors.isEmpty()) {</span>
+<span class="fc" id="L71">            flavors.forEach(item -&gt; item.setDishId(dish.getId()));</span>
+<span class="fc" id="L72">            dishMapper.insertBatch(flavors);</span>
         }
-<span class="nc" id="L74">    }</span>
+<span class="fc" id="L74">    }</span>
 
     @Override
     public PageResult page(DishPageQueryDTO queryDTO) {
@@ -92,21 +92,21 @@ import java.util.List;
     @Override
     @Transactional
     public void deleteBatch(List&lt;Long&gt; ids) {
-<span class="nc bnc" id="L95" title="All 2 branches missed.">        for (Long id : ids) {</span>
-<span class="nc" id="L96">            Dish dish = getAccessibleDish(id);</span>
-<span class="nc bnc" id="L97" title="All 2 branches missed.">            if (StatusConstant.ENABLE.equals(dish.getStatus())) {</span>
-<span class="nc" id="L98">                throw new BaseException(&quot;璧峰敭涓殑鑿滃搧涓嶈兘鍒犻櫎&quot;);</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        for (Long id : ids) {</span>
+<span class="fc" id="L96">            Dish dish = getAccessibleDish(id);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">            if (StatusConstant.ENABLE.equals(dish.getStatus())) {</span>
+<span class="fc" id="L98">                throw new BaseException(&quot;璧峰敭涓殑鑿滃搧涓嶈兘鍒犻櫎&quot;);</span>
             }
-<span class="nc" id="L100">        }</span>
+<span class="fc" id="L100">        }</span>
 
-<span class="nc" id="L102">        List&lt;SetmealDish&gt; setmealIds = setMealDishMapper.getSetmealsByDishIds(ids);</span>
-<span class="nc bnc" id="L103" title="All 4 branches missed.">        if (setmealIds != null &amp;&amp; !setmealIds.isEmpty()) {</span>
-<span class="nc" id="L104">            throw new BaseException(&quot;褰撳墠鑿滃搧鍏宠仈浜嗗椁愶紝涓嶈兘鍒犻櫎&quot;);</span>
+<span class="fc" id="L102">        List&lt;SetmealDish&gt; setmealIds = setMealDishMapper.getSetmealsByDishIds(ids);</span>
+<span class="pc bpc" id="L103" title="1 of 4 branches missed.">        if (setmealIds != null &amp;&amp; !setmealIds.isEmpty()) {</span>
+<span class="fc" id="L104">            throw new BaseException(&quot;褰撳墠鑿滃搧鍏宠仈浜嗗椁愶紝涓嶈兘鍒犻櫎&quot;);</span>
         }
 
-<span class="nc" id="L107">        dishMapper.deleteBatch(ids);</span>
-<span class="nc" id="L108">        dishFlavorMapper.deleteBatch(ids);</span>
-<span class="nc" id="L109">    }</span>
+<span class="fc" id="L107">        dishMapper.deleteBatch(ids);</span>
+<span class="fc" id="L108">        dishFlavorMapper.deleteBatch(ids);</span>
+<span class="fc" id="L109">    }</span>
 
     @Override
     public void startOrStop(Integer status, Long id) {
@@ -117,13 +117,13 @@ import java.util.List;
     @Override
     @Transactional
     public DishVO getByIdWithFlavor(Long id) {
-<span class="nc" id="L120">        Dish dish = getAccessibleDish(id);</span>
-<span class="nc" id="L121">        List&lt;DishFlavor&gt; flavors = dishFlavorMapper.getByDishId(id);</span>
-<span class="nc" id="L122">        DishVO dishVO = new DishVO();</span>
-<span class="nc" id="L123">        BeanUtils.copyProperties(dish, dishVO);</span>
-<span class="nc" id="L124">        dishVO.setFlavors(flavors);</span>
-<span class="nc" id="L125">        fillDisplayImage(dishVO);</span>
-<span class="nc" id="L126">        return dishVO;</span>
+<span class="fc" id="L120">        Dish dish = getAccessibleDish(id);</span>
+<span class="fc" id="L121">        List&lt;DishFlavor&gt; flavors = dishFlavorMapper.getByDishId(id);</span>
+<span class="fc" id="L122">        DishVO dishVO = new DishVO();</span>
+<span class="fc" id="L123">        BeanUtils.copyProperties(dish, dishVO);</span>
+<span class="fc" id="L124">        dishVO.setFlavors(flavors);</span>
+<span class="fc" id="L125">        fillDisplayImage(dishVO);</span>
+<span class="fc" id="L126">        return dishVO;</span>
     }
 
     @Override
@@ -191,17 +191,17 @@ import java.util.List;
     }
 
     private Dish getAccessibleDish(Long id) {
-<span class="nc" id="L194">        Dish dish = dishMapper.getById(id);</span>
-<span class="nc bnc" id="L195" title="All 2 branches missed.">        if (dish == null) {</span>
-<span class="nc" id="L196">            throw new BaseException(&quot;鑿滃搧涓嶅瓨鍦?&quot;);</span>
+<span class="fc" id="L194">        Dish dish = dishMapper.getById(id);</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (dish == null) {</span>
+<span class="fc" id="L196">            throw new BaseException(&quot;鑿滃搧涓嶅瓨鍦?&quot;);</span>
         }
-<span class="nc" id="L198">        MerchantScopeUtils.assertAccessible(dish.getMerchantId());</span>
-<span class="nc" id="L199">        return dish;</span>
+<span class="fc" id="L198">        MerchantScopeUtils.assertAccessible(dish.getMerchantId());</span>
+<span class="fc" id="L199">        return dish;</span>
     }
 
     private void validateCategoryOwnership(Long categoryId, Long merchantId) {
-<span class="nc bnc" id="L203" title="All 4 branches missed.">        if (categoryId == null || !schemaSupport.supportsCategoryScope()) {</span>
-<span class="nc" id="L204">            return;</span>
+<span class="pc bpc" id="L203" title="2 of 4 branches missed.">        if (categoryId == null || !schemaSupport.supportsCategoryScope()) {</span>
+<span class="fc" id="L204">            return;</span>
         }
 <span class="nc" id="L206">        Category category = categoryMapper.getById(categoryId);</span>
 <span class="nc bnc" id="L207" title="All 2 branches missed.">        if (category == null) {</span>
@@ -213,7 +213,7 @@ import java.util.List;
 <span class="nc" id="L213">    }</span>
 
     private void fillDisplayImage(DishVO dishVO) {
-<span class="nc" id="L216">        dishVO.setImage(storefrontImageResolver.resolve(dishVO.getImage()));</span>
-<span class="nc" id="L217">    }</span>
+<span class="fc" id="L216">        dishVO.setImage(storefrontImageResolver.resolve(dishVO.getImage()));</span>
+<span class="fc" id="L217">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

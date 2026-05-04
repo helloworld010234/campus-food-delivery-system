@@ -16,45 +16,45 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-<span class="nc" id="L19">@Slf4j</span>
-<span class="nc" id="L20">public class WebSocketAuthConfigurator extends ServerEndpointConfig.Configurator {</span>
+<span class="fc" id="L19">@Slf4j</span>
+<span class="fc" id="L20">public class WebSocketAuthConfigurator extends ServerEndpointConfig.Configurator {</span>
 
     private static JwtProperties staticJwtProperties;
 
     @Autowired
     public void setJwtProperties(JwtProperties jwtProperties) {
-<span class="nc" id="L26">        WebSocketAuthConfigurator.staticJwtProperties = jwtProperties;</span>
-<span class="nc" id="L27">    }</span>
+<span class="fc" id="L26">        WebSocketAuthConfigurator.staticJwtProperties = jwtProperties;</span>
+<span class="fc" id="L27">    }</span>
 
     @Override
     public void modifyHandshake(ServerEndpointConfig config,
                                 HandshakeRequest request,
                                 HandshakeResponse response) {
-<span class="nc" id="L33">        JwtProperties jwtProperties = staticJwtProperties;</span>
-<span class="nc bnc" id="L34" title="All 2 branches missed.">        if (jwtProperties == null) {</span>
+<span class="fc" id="L33">        JwtProperties jwtProperties = staticJwtProperties;</span>
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">        if (jwtProperties == null) {</span>
 <span class="nc" id="L35">            log.error(&quot;JwtProperties not initialized — Spring bean injection failed&quot;);</span>
 <span class="nc" id="L36">            throw new BaseException(&quot;Unauthorized&quot;);</span>
         }
 
-<span class="nc" id="L39">        Map&lt;String, List&lt;String&gt;&gt; parameterMap = request.getParameterMap();</span>
-<span class="nc" id="L40">        List&lt;String&gt; tokens = parameterMap.get(&quot;token&quot;);</span>
+<span class="fc" id="L39">        Map&lt;String, List&lt;String&gt;&gt; parameterMap = request.getParameterMap();</span>
+<span class="fc" id="L40">        List&lt;String&gt; tokens = parameterMap.get(&quot;token&quot;);</span>
 
-<span class="nc bnc" id="L42" title="All 4 branches missed.">        if (tokens == null || tokens.isEmpty()) {</span>
-<span class="nc" id="L43">            log.warn(&quot;WebSocket handshake rejected: missing token&quot;);</span>
-<span class="nc" id="L44">            throw new BaseException(&quot;Unauthorized&quot;);</span>
+<span class="pc bpc" id="L42" title="1 of 4 branches missed.">        if (tokens == null || tokens.isEmpty()) {</span>
+<span class="fc" id="L43">            log.warn(&quot;WebSocket handshake rejected: missing token&quot;);</span>
+<span class="fc" id="L44">            throw new BaseException(&quot;Unauthorized&quot;);</span>
         }
 
-<span class="nc" id="L47">        String token = tokens.get(0);</span>
+<span class="fc" id="L47">        String token = tokens.get(0);</span>
 
         try {
-<span class="nc" id="L50">            Claims claims = JwtUtil.parseJWT(jwtProperties.getAdminSecretKey(), token);</span>
-<span class="nc" id="L51">            Long empId = Long.valueOf(claims.get(JwtClaimsConstant.EMP_ID).toString());</span>
-<span class="nc" id="L52">            config.getUserProperties().put(&quot;empId&quot;, empId);</span>
-<span class="nc" id="L53">            log.debug(&quot;WebSocket handshake accepted for empId={}&quot;, empId);</span>
-<span class="nc" id="L54">        } catch (Exception e) {</span>
-<span class="nc" id="L55">            log.warn(&quot;WebSocket handshake rejected: invalid token&quot;, e);</span>
-<span class="nc" id="L56">            throw new BaseException(&quot;Unauthorized&quot;);</span>
-<span class="nc" id="L57">        }</span>
-<span class="nc" id="L58">    }</span>
+<span class="fc" id="L50">            Claims claims = JwtUtil.parseJWT(jwtProperties.getAdminSecretKey(), token);</span>
+<span class="fc" id="L51">            Long empId = Long.valueOf(claims.get(JwtClaimsConstant.EMP_ID).toString());</span>
+<span class="fc" id="L52">            config.getUserProperties().put(&quot;empId&quot;, empId);</span>
+<span class="fc" id="L53">            log.debug(&quot;WebSocket handshake accepted for empId={}&quot;, empId);</span>
+<span class="fc" id="L54">        } catch (Exception e) {</span>
+<span class="fc" id="L55">            log.warn(&quot;WebSocket handshake rejected: invalid token&quot;, e);</span>
+<span class="fc" id="L56">            throw new BaseException(&quot;Unauthorized&quot;);</span>
+<span class="fc" id="L57">        }</span>
+<span class="fc" id="L58">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
