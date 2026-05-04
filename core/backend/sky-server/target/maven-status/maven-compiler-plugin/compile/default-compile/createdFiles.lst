@@ -21,6 +21,7 @@ com\sky\controller\user\OrderController.class
 com\sky\service\impl\CampusServiceImpl.class
 com\sky\mapper\SetmealDishMapper.class
 com\sky\service\impl\ReportServiceImpl.class
+com\sky\task\TokenBlacklistCleanupTask.class
 com\sky\service\impl\SetmealServiceImpl.class
 com\sky\controller\admin\SetmealController.class
 com\sky\mapper\UserMapper.class

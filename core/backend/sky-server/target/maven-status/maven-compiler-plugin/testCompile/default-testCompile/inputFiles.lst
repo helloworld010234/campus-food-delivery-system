@@ -11,6 +11,7 @@ D:\sky-delivery\core\backend\sky-server\src\test\java\com\sky\service\impl\Order
 D:\sky-delivery\core\backend\sky-server\src\test\java\com\sky\service\impl\UserServiceImplTest.java
 D:\sky-delivery\core\backend\sky-server\src\test\java\com\sky\service\TokenBlacklistServiceTest.java
 D:\sky-delivery\core\backend\sky-server\src\test\java\com\sky\SkyApplicationIT.java
+D:\sky-delivery\core\backend\sky-server\src\test\java\com\sky\task\TokenBlacklistCleanupTaskTest.java
 D:\sky-delivery\core\backend\sky-server\src\test\java\com\sky\test\OssValidationTest.java
 D:\sky-delivery\core\backend\sky-server\src\test\java\com\sky\TestcontainersConfig.java
 D:\sky-delivery\core\backend\sky-server\src\test\java\com\sky\websocket\WebSocketAuthConfiguratorTest.java

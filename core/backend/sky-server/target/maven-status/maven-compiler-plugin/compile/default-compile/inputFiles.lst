@@ -79,6 +79,7 @@ D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\SkyApplication.jav
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\support\MultiMerchantSchemaSupport.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\support\MultiMerchantStartupGuard.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\task\OrderTask.java
+D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\task\TokenBlacklistCleanupTask.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\task\WebSocketTask.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\utils\MerchantScopeUtils.java
 D:\sky-delivery\core\backend\sky-server\src\main\java\com\sky\utils\StorefrontImageResolver.java

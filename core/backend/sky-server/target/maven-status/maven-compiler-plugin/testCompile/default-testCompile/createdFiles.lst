@@ -8,6 +8,7 @@ com\sky\TestcontainersConfig.class
 com\sky\service\impl\UserServiceImplTest.class
 com\sky\controller\user\OrderControllerTest.class
 com\sky\websocket\WebSocketServerTest.class
+com\sky\task\TokenBlacklistCleanupTaskTest.class
 com\sky\test\OssValidationTest.class
 com\sky\service\impl\DishServiceImplTest.class
 com\sky\SkyApplicationIT.class
