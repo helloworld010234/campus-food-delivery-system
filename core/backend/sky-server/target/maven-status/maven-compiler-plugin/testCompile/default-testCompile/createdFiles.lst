@@ -11,5 +11,6 @@ com\sky\test\OssValidationTest.class
 com\sky\service\impl\DishServiceImplTest.class
 com\sky\SkyApplicationIT.class
 com\sky\controller\user\DishControllerTest.class
+com\sky\interceptor\JwtTokenAdminInterceptorTest.class
 com\sky\controller\admin\DishControllerTest.class
 com\sky\controller\user\UserControllerTest.class
