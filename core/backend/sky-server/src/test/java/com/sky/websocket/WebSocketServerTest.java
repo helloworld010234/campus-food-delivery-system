@@ -68,4 +68,52 @@ class WebSocketServerTest {
         // After successful onOpen, sendToClient should be able to retrieve the session
         webSocketServer.sendToClient("5", "test message");
     }
+
+    @Test
+    void shouldRemoveFromSessionMap_onClose() throws Exception {
+        Map<String, Object> userProperties = new HashMap<>();
+        userProperties.put("empId", 5L);
+        when(config.getUserProperties()).thenReturn(userProperties);
+
+        webSocketServer.onOpen(session, "5", config);
+        webSocketServer.onClose("5");
+
+        // After close, sendToClient should not find the session
+        webSocketServer.sendToClient("5", "test message");
+    }
+
+    @Test
+    void shouldDoNothing_whenSendToClientWithNullSession() {
+        webSocketServer.sendToClient("nonexistent", "test message");
+    }
+
+    @Test
+    void shouldHandleSendToClientException() throws Exception {
+        Map<String, Object> userProperties = new HashMap<>();
+        userProperties.put("empId", 5L);
+        when(config.getUserProperties()).thenReturn(userProperties);
+
+        webSocketServer.onOpen(session, "5", config);
+
+        jakarta.websocket.RemoteEndpoint.Basic remote = mock(jakarta.websocket.RemoteEndpoint.Basic.class);
+        when(session.getBasicRemote()).thenReturn(remote);
+        doThrow(new RuntimeException("send failed")).when(remote).sendText(anyString());
+
+        webSocketServer.sendToClient("5", "test message");
+    }
+
+    @Test
+    void shouldHandleSendToAllClientException() throws Exception {
+        Map<String, Object> userProperties = new HashMap<>();
+        userProperties.put("empId", 5L);
+        when(config.getUserProperties()).thenReturn(userProperties);
+
+        webSocketServer.onOpen(session, "5", config);
+
+        jakarta.websocket.RemoteEndpoint.Basic remote = mock(jakarta.websocket.RemoteEndpoint.Basic.class);
+        when(session.getBasicRemote()).thenReturn(remote);
+        doThrow(new RuntimeException("send failed")).when(remote).sendText(anyString());
+
+        webSocketServer.sendToAllClient("broadcast message");
+    }
 }
