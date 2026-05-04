@@ -3,10 +3,10 @@
 import com.sky.constant.JwtClaimsConstant;
 import com.sky.context.BaseContext;
 import com.sky.properties.JwtProperties;
+import com.sky.service.TokenBlacklistService;
 import com.sky.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -15,33 +15,42 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-<span class="nc" id="L18">@Slf4j</span>
-<span class="nc" id="L19">public class JwtTokenUserInterceptor implements HandlerInterceptor {</span>
+<span class="fc" id="L18">@Slf4j</span>
+public class JwtTokenUserInterceptor implements HandlerInterceptor {
 
-    @Autowired
-    private JwtProperties jwtProperties;
+    private final JwtProperties jwtProperties;
+    private final TokenBlacklistService tokenBlacklistService;
+
+<span class="fc" id="L24">    public JwtTokenUserInterceptor(JwtProperties jwtProperties, TokenBlacklistService tokenBlacklistService) {</span>
+<span class="fc" id="L25">        this.jwtProperties = jwtProperties;</span>
+<span class="fc" id="L26">        this.tokenBlacklistService = tokenBlacklistService;</span>
+<span class="fc" id="L27">    }</span>
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-<span class="nc" id="L26">        BaseContext.clear();</span>
-<span class="nc bnc" id="L27" title="All 2 branches missed.">        if (!(handler instanceof HandlerMethod)) {</span>
-<span class="nc" id="L28">            return true;</span>
+<span class="fc" id="L31">        BaseContext.clear();</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        if (!(handler instanceof HandlerMethod)) {</span>
+<span class="fc" id="L33">            return true;</span>
         }
 
-<span class="nc" id="L31">        String token = request.getHeader(jwtProperties.getUserTokenName());</span>
+<span class="fc" id="L36">        String token = request.getHeader(jwtProperties.getUserTokenName());</span>
         try {
-<span class="nc" id="L33">            Claims claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);</span>
-<span class="nc" id="L34">            BaseContext.setCurrentId(Long.valueOf(claims.get(JwtClaimsConstant.USER_ID).toString()));</span>
-<span class="nc" id="L35">            return true;</span>
-<span class="nc" id="L36">        } catch (Exception ex) {</span>
-<span class="nc" id="L37">            response.setStatus(401);</span>
-<span class="nc" id="L38">            return false;</span>
+<span class="pc bpc" id="L38" title="1 of 4 branches missed.">            if (token != null &amp;&amp; tokenBlacklistService.isBlacklisted(token)) {</span>
+<span class="fc" id="L39">                response.setStatus(401);</span>
+<span class="fc" id="L40">                return false;</span>
+            }
+<span class="fc" id="L42">            Claims claims = JwtUtil.parseJWT(jwtProperties.getUserSecretKey(), token);</span>
+<span class="fc" id="L43">            BaseContext.setCurrentId(Long.valueOf(claims.get(JwtClaimsConstant.USER_ID).toString()));</span>
+<span class="fc" id="L44">            return true;</span>
+<span class="fc" id="L45">        } catch (Exception ex) {</span>
+<span class="fc" id="L46">            response.setStatus(401);</span>
+<span class="fc" id="L47">            return false;</span>
         }
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-<span class="nc" id="L44">        BaseContext.clear();</span>
-<span class="nc" id="L45">    }</span>
+<span class="nc" id="L53">        BaseContext.clear();</span>
+<span class="nc" id="L54">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
