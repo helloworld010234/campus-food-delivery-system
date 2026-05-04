@@ -1,0 +1,13 @@
+[Unit]
+Description=Restrict public access to Sky host admin/data ports
+After=network.target
+Wants=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -lc '/usr/sbin/iptables -C INPUT -p tcp -m multiport --dports 3306,6379 ! -s 127.0.0.1 -j DROP || /usr/sbin/iptables -I INPUT 1 -p tcp -m multiport --dports 3306,6379 ! -s 127.0.0.1 -j DROP'
+ExecStop=/bin/bash -lc '/usr/sbin/iptables -C INPUT -p tcp -m multiport --dports 3306,6379 ! -s 127.0.0.1 -j DROP && /usr/sbin/iptables -D INPUT -p tcp -m multiport --dports 3306,6379 ! -s 127.0.0.1 -j DROP || true'
+
+[Install]
+WantedBy=multi-user.target

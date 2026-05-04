@@ -1,0 +1,1 @@
+<view class="navBar" style="{{'padding-top:'+(safeTop+'px')+';'}}"><view class="nav-shell"><view data-event-opts="{{[['tap',[['goHome',['$event']]]]]}}" class="brand-badge" bindtap="__e"><view class="brand-dot"></view><text class="brand-text">杏林校园外卖</text></view></view></view>

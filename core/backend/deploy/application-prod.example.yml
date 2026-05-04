@@ -1,0 +1,58 @@
+server:
+  address: 127.0.0.1
+  port: 8081
+
+spring:
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: CHANGE_ME_REDIS_PASSWORD
+    database: 0
+
+logging:
+  file:
+    name: /var/log/sky/sky-backend.log
+  level:
+    root: info
+    com.sky: info
+
+sky:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: 127.0.0.1
+    port: 3306
+    database: db_new
+    username: sky
+    password: CHANGE_ME_DB_PASSWORD
+
+  alioss:
+    access-key-id: CHANGE_ME_OSS_KEY
+    access-key-secret: CHANGE_ME_OSS_SECRET
+    bucket-name: CHANGE_ME_BUCKET
+    endpoint: oss-cn-hangzhou.aliyuncs.com
+
+  storefront:
+    shop-id: 1
+    shop-name: Sky Acceptance Store
+    shop-address: CHANGE_ME_ADDRESS
+    phone: CHANGE_ME_PHONE
+    delivery-fee: 3.00
+    estimated-delivery-minutes: 30
+    api-base-url: http://8.136.34.168
+    image-url-expire-minutes: 1440
+    mock-user-login: true
+    mock-payment: true
+
+  wechat:
+    appid: CHANGE_ME_WECHAT_APPID
+    secret: CHANGE_ME_WECHAT_SECRET
+    mchid: CHANGE_ME_WECHAT_MCHID
+    mch-serial-no: CHANGE_ME_WECHAT_MCH_SERIAL
+    private-key-file-path: /etc/sky/wechat/apiclient_key.pem
+    api-v3-key: CHANGE_ME_WECHAT_API_V3_KEY
+    we-chat-pay-cert-file-path: /etc/sky/wechat/wechatpay_cert.pem
+    notify-url: http://8.136.34.168/notify/paySuccess
+    refund-notify-url: http://8.136.34.168/notify/refundSuccess

@@ -1,0 +1,19 @@
+package com.sky.dto;
+
+import lombok.Data;
+
+import java.io.Serializable;
+
+@Data
+public class EmployeePageQueryDTO implements Serializable {
+
+    private String name;
+
+    private Long merchantId;
+
+    private Integer accountType;
+
+    private int page;
+
+    private int pageSize;
+}

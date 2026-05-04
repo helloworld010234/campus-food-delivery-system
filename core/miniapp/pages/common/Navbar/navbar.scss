@@ -1,0 +1,70 @@
+.navBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  width: 100%;
+  box-sizing: border-box;
+  pointer-events: none;
+
+  .nav-shell {
+    margin: 0 24rpx;
+    padding: 16rpx 0 8rpx;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .brand-badge {
+    pointer-events: auto;
+  }
+
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 16rpx 24rpx;
+    border-radius: 999rpx;
+    background: rgba(10, 31, 24, 0.54);
+    backdrop-filter: blur(12rpx);
+    box-shadow: 0 20rpx 40rpx rgba(15, 35, 29, 0.18);
+  }
+
+  .brand-dot {
+    width: 14rpx;
+    height: 14rpx;
+    border-radius: 50%;
+    background: #f4a259;
+    margin-right: 12rpx;
+  }
+
+  .brand-text {
+    font-size: 24rpx;
+    line-height: 32rpx;
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+  }
+
+  .action-pill {
+    min-width: 96rpx;
+    padding: 16rpx 22rpx;
+    text-align: center;
+    border-radius: 999rpx;
+    background: rgba(255, 255, 255, 0.9);
+    color: #23312c;
+    font-size: 24rpx;
+    line-height: 32rpx;
+    font-weight: 600;
+    box-shadow: 0 20rpx 40rpx rgba(15, 35, 29, 0.12);
+  }
+
+  .action-pill--primary {
+    background: #f4a259;
+    color: #ffffff;
+  }
+}

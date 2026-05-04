@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.mapper.MerchantMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into merchant (
+            campus_id, merchant_code, name, logo, cover_image, description, announcement,
+            contact_name, contact_phone, address_detail, sort, status, business_status,
+            business_begin_time, business_end_time, create_time, update_time, create_user, update_user
+        ) values (
+            #{campusId}, #{merchantCode}, #{name}, #{logo}, #{coverImage}, #{description}, #{announcement},
+            #{contactName}, #{contactPhone}, #{addressDetail}, #{sort}, #{status}, #{businessStatus},
+            #{businessBeginTime}, #{businessEndTime}, #{createTime}, #{updateTime}, #{createUser}, #{updateUser}
+        )
+    </insert>
+
+    <update id="update">
+        update merchant
+        <set>
+            <if test="campusId != null">campus_id = #{campusId},</if>
+            <if test="merchantCode != null">merchant_code = #{merchantCode},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="logo != null">logo = #{logo},</if>
+            <if test="coverImage != null">cover_image = #{coverImage},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="announcement != null">announcement = #{announcement},</if>
+            <if test="contactName != null">contact_name = #{contactName},</if>
+            <if test="contactPhone != null">contact_phone = #{contactPhone},</if>
+            <if test="addressDetail != null">address_detail = #{addressDetail},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="businessStatus != null">business_status = #{businessStatus},</if>
+            <if test="businessBeginTime != null">business_begin_time = #{businessBeginTime},</if>
+            <if test="businessEndTime != null">business_end_time = #{businessEndTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="updateUser != null">update_user = #{updateUser}</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <select id="pageQuery" resultType="com.sky.entity.Merchant">
+        select * from merchant
+        <where>
+            <if test="campusId != null">
+                and campus_id = #{campusId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="businessStatus != null">
+                and business_status = #{businessStatus}
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%')
+            </if>
+        </where>
+        order by sort asc, create_time desc
+    </select>
+
+    <select id="listForUser" resultType="com.sky.vo.MerchantVO">
+        select
+            m.id,
+            m.campus_id campusId,
+            c.name campusName,
+            c.status campusStatus,
+            m.merchant_code merchantCode,
+            m.name,
+            m.logo,
+            m.cover_image coverImage,
+            m.description,
+            m.announcement,
+            m.contact_name contactName,
+            m.contact_phone contactPhone,
+            m.address_detail addressDetail,
+            m.sort,
+            m.status,
+            m.business_status businessStatus,
+            m.business_begin_time businessBeginTime,
+            m.business_end_time businessEndTime,
+            c.delivery_fee deliveryFee,
+            c.estimated_delivery_minutes estimatedDeliveryMinutes,
+            c.service_phone servicePhone
+        from merchant m
+        join campus c on m.campus_id = c.id
+        where m.status = 1
+        <if test="campusId != null">
+            and m.campus_id = #{campusId}
+        </if>
+        order by m.sort asc, m.id asc
+    </select>
+
+    <select id="getMerchantInfo" resultType="com.sky.vo.MerchantVO">
+        select
+            m.id,
+            m.campus_id campusId,
+            c.name campusName,
+            c.status campusStatus,
+            m.merchant_code merchantCode,
+            m.name,
+            m.logo,
+            m.cover_image coverImage,
+            m.description,
+            m.announcement,
+            m.contact_name contactName,
+            m.contact_phone contactPhone,
+            m.address_detail addressDetail,
+            m.sort,
+            m.status,
+            m.business_status businessStatus,
+            m.business_begin_time businessBeginTime,
+            m.business_end_time businessEndTime,
+            c.delivery_fee deliveryFee,
+            c.estimated_delivery_minutes estimatedDeliveryMinutes,
+            c.service_phone servicePhone
+        from merchant m
+        join campus c on m.campus_id = c.id
+        where m.id = #{merchantId}
+    </select>
+</mapper>

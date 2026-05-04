@@ -1,0 +1,38 @@
+0 verbose cli D:\JAVA\Program Files\nodejs\node.exe D:\JAVA\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.8.2
+2 info using node@v20.17.0
+3 silly config load:file:D:\JAVA\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:D:\sky-delivery\core\miniapp\.npmrc
+5 silly config load:file:C:\Users\g'y'c\.npmrc
+6 silly config load:file:C:\Users\g'y'c\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install"
+9 verbose logfile logs-max:10 dir:D:\sky-delivery\.npm-cache\_logs\2026-04-30T13_47_05_572Z-
+10 verbose logfile D:\sky-delivery\.npm-cache\_logs\2026-04-30T13_47_05_572Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile done cleaning log files
+13 silly idealTree buildDeps
+14 silly fetch manifest @dcloudio/uni-ui@^1.4.14
+15 silly packumentCache full:https://registry.npmjs.org/@dcloudio%2funi-ui cache-miss
+16 http fetch GET 200 https://registry.npmjs.org/npm 2808ms
+17 http fetch GET 200 https://registry.npmjs.org/@dcloudio%2funi-ui 3193ms (cache miss)
+18 silly packumentCache full:https://registry.npmjs.org/@dcloudio%2funi-ui set size:undefined disposed:false
+19 silly placeDep ROOT @dcloudio/uni-ui@1.5.12 OK for:  want: ^1.4.14
+20 silly reify moves {}
+21 silly audit bulk request { '@dcloudio/uni-ui': [ '1.5.12' ] }
+22 silly tarball no local data for @dcloudio/uni-ui@https://registry.npmjs.org/@dcloudio/uni-ui/-/uni-ui-1.5.12.tgz. Extracting by manifest.
+23 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 296ms
+24 silly audit report {}
+25 http fetch GET 200 https://registry.npmjs.org/@dcloudio/uni-ui/-/uni-ui-1.5.12.tgz 1266ms (cache miss)
+26 silly ADD node_modules/@dcloudio/uni-ui
+27 verbose cwd D:\sky-delivery\core\miniapp
+28 verbose os Windows_NT 10.0.22631
+29 verbose node v20.17.0
+30 verbose npm  v10.8.2
+31 notice
+31 notice New major version of npm available! 10.8.2 -> 11.13.0
+31 notice Changelog: https://github.com/npm/cli/releases/tag/v11.13.0
+31 notice To update run: npm install -g npm@11.13.0
+31 notice  { force: true, [Symbol(proc-log.meta)]: true }
+32 verbose exit 0
+33 info ok

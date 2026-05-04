@@ -1,0 +1,145 @@
+package com.sky.config;
+
+import com.sky.interceptor.JwtTokenAdminInterceptor;
+import com.sky.interceptor.JwtTokenUserInterceptor;
+import com.sky.json.JacksonObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
+import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spring.web.plugins.Docket;
+
+import java.util.List;
+
+/**
+ * 配置类，注册web层相关组件
+ */
+@Configuration
+@Slf4j
+public class WebMvcConfiguration extends WebMvcConfigurationSupport {
+
+    @Autowired
+    private JwtTokenAdminInterceptor jwtTokenAdminInterceptor;
+
+    @Autowired
+    private JwtTokenUserInterceptor jwtTokenUserInterceptor;
+
+    /**
+     * 注册自定义拦截器
+     *
+     * @param registry
+     */
+    protected void addInterceptors(InterceptorRegistry registry) {
+        log.info("开始注册自定义拦截器...");
+        registry.addInterceptor(jwtTokenAdminInterceptor)
+                .addPathPatterns("/admin/**")
+                .excludePathPatterns("/admin/employee/login")
+                .excludePathPatterns("/admin/common/download");
+
+        registry.addInterceptor(jwtTokenUserInterceptor)
+                .addPathPatterns("/user/**")
+                .excludePathPatterns("/user/user/login")
+                .excludePathPatterns("/user/shop/status")
+                .excludePathPatterns("/user/shop/list")
+                .excludePathPatterns("/user/shop/getMerchantInfo")
+                .excludePathPatterns("/user/category/list")
+                .excludePathPatterns("/user/dish/list")
+                .excludePathPatterns("/user/setmeal/list")
+                .excludePathPatterns("/user/common/download");
+    }
+
+    /**
+     * 配置跨域支持
+     *
+     * @param registry
+     */
+    @Override
+    protected void addCorsMappings(CorsRegistry registry) {
+        log.info("开始配置跨域支持...");
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:8080", "http://localhost:8081", "http://localhost", "https://servicewechat.com")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+    }
+
+    /**
+     * 通过knife4j生成接口文档
+     * 管理端
+     * @return
+     */
+    @Bean
+    public Docket docket1() {
+        ApiInfo apiInfo = new ApiInfoBuilder()
+                .title("苍穹外卖项目接口文档")
+                .version("2.0")
+                .description("苍穹外卖项目接口文档")
+                .build();
+        Docket docket = new Docket(DocumentationType.SWAGGER_2)
+                .groupName("管理端")
+                .apiInfo(apiInfo)
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.sky.controller.admin"))
+                .paths(PathSelectors.any())
+                .build();
+        return docket;
+    }
+
+    /**
+     * 用户端
+     * @return
+     */
+    @Bean
+    public Docket docket2() {
+        ApiInfo apiInfo = new ApiInfoBuilder()
+                .title("苍穹外卖项目接口文档")
+                .version("2.0")
+                .description("苍穹外卖项目接口文档")
+                .build();
+        Docket docket = new Docket(DocumentationType.SWAGGER_2)
+                .groupName("用户端")
+                .apiInfo(apiInfo)
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.sky.controller.user"))
+                .paths(PathSelectors.any())
+                .build();
+        return docket;
+    }
+
+    /**
+     * 设置静态资源映射
+     *
+     * @param registry
+     */
+    protected void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/doc.html").addResourceLocations("classpath:/META-INF/resources/");
+        registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
+    }
+
+
+    /**
+     * 消息扩展转换器
+     * @param converters
+     */
+    @Override
+    protected void extendMessageConverters(List<HttpMessageConverter<?>> converters)
+    {
+        // 格式化时间
+        MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter = new MappingJackson2HttpMessageConverter();
+        mappingJackson2HttpMessageConverter.setObjectMapper(new JacksonObjectMapper());
+        // 放入容器中
+        converters.add(0, mappingJackson2HttpMessageConverter);//扩展消息转换器
+    }
+}

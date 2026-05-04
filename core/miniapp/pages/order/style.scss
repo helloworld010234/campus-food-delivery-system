@@ -1,0 +1,131 @@
+$page-bg: #f6f2ea;
+$card-bg: #fbfaf7;
+$primary: #2f5d50;
+$primary-dark: #23312c;
+$accent: #f4a259;
+$muted: #73817c;
+
+.order_page {
+  min-height: 100vh;
+  background: $page-bg;
+}
+
+.order_content {
+  min-height: 100vh;
+  padding: 180rpx 24rpx 220rpx;
+  box-sizing: border-box;
+}
+
+.checkout_banner {
+  padding: 30rpx 30rpx 34rpx;
+  border-radius: 32rpx;
+  background:
+    radial-gradient(circle at top right, rgba(244, 162, 89, 0.26), transparent 32%),
+    linear-gradient(145deg, #2f5d50 0%, #203d34 100%);
+  box-shadow: 0 24rpx 60rpx rgba(24, 49, 41, 0.18);
+  color: #ffffff;
+}
+
+.banner_eyebrow {
+  font-size: 22rpx;
+  line-height: 30rpx;
+  color: rgba(244, 162, 89, 0.96);
+  font-weight: 600;
+}
+
+.banner_title {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 40rpx;
+  line-height: 52rpx;
+  font-weight: 700;
+}
+
+.banner_desc {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 24rpx;
+  line-height: 38rpx;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.order_content_box {
+  margin-top: 22rpx;
+}
+
+.footer_order_buttom {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(28rpx + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 16rpx;
+  border-radius: 32rpx;
+  background: rgba(21, 36, 31, 0.94);
+  box-shadow: 0 26rpx 60rpx rgba(20, 36, 31, 0.24);
+}
+
+.pay_summary {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pay_label {
+  font-size: 24rpx;
+  line-height: 34rpx;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.pay_desc {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  line-height: 32rpx;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pay_price {
+  flex-shrink: 0;
+  font-size: 40rpx;
+  line-height: 52rpx;
+  color: #ffffff;
+  font-weight: 700;
+
+  .ico {
+    font-size: 24rpx;
+  }
+}
+
+.order_but {
+  flex-shrink: 0;
+  min-width: 204rpx;
+  height: 88rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: $accent;
+  color: #ffffff;
+  text-align: center;
+  line-height: 88rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.order_but--disabled {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+::v-deep .uni-nav-bar {
+  .uni-nav-bar-text {
+    font-size: 30rpx !important;
+    font-weight: 700 !important;
+  }
+
+  .uni-nav-bar-btn-icon-left {
+    color: #ffffff !important;
+  }
+}
