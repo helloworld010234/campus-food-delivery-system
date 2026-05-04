@@ -240,3 +240,17 @@ CREATE TABLE `user` (
   `create_time` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3 COLLATE=utf8_bin COMMENT='用户信息';
+
+DROP TABLE IF EXISTS `token_blacklist`;
+CREATE TABLE `token_blacklist` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `token_hash` varchar(64) NOT NULL COMMENT 'token SHA-256 哈希',
+  `token_type` varchar(16) NOT NULL COMMENT 'ADMIN | USER',
+  `subject_id` bigint DEFAULT NULL COMMENT 'emp_id 或 user_id',
+  `expires_at` datetime NOT NULL COMMENT 'token 原过期时间',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `reason` varchar(32) DEFAULT NULL COMMENT 'LOGOUT | PASSWORD_CHANGE | ACCOUNT_DISABLED',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_token_hash` (`token_hash`),
+  KEY `idx_expires_at` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Token 黑名单';
