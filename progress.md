@@ -1,27 +1,43 @@
-# Middleware Deployment Progress
+# Thesis Upgrade Progress
 
-## 2026-04-30
-- Started continuation of middleware deployment task.
-- Checked session catchup output; no previous planning files were present.
-- Listed project root contents.
-- Confirmed `D:\sky-delivery` is not a Git repository.
-- Created persistent planning files in the project root.
-- Analyzed README, SETUP, Spring configs, Maven dependencies, and Nginx configs.
-- Identified runtime middleware as MySQL, Redis, and Nginx; Aliyun OSS/WeChat are external services.
-- Connected to the remote CentOS 7 server and inspected current middleware/service state.
-- Diagnosed Redis/Nginx service status mismatch: Redis process is healthy but systemd inactive; Nginx init script returns failure when nginx is already running.
-- Patched `/etc/init.d/nginx` on the server so "already running" returns success for systemd.
-- Started/enabled Redis and Nginx through systemd; MySQL/Redis/Nginx now report active/enabled.
-- Added Spring Boot 3-compatible `spring.data.redis` keys to `/etc/sky/application-prod.yml` while keeping the existing `spring.redis` keys.
-- Removed public firewalld exposure for MySQL `3306/tcp` and Redis `6379/tcp`.
-- Rewrote `sky-port-filter.service` to enforce closed public data ports on boot.
-- Verified Nginx config, Redis auth ping, MySQL app database access, local HTTP response, and external port reachability.
-- User requested starting frontend, backend, and WeChat side.
-- Changed remote `sky-backend.service` to run with JDK 17 and restarted it successfully.
-- Updated miniapp `utils/env.js` to point to `http://8.136.34.168`.
-- Imported miniapp into HBuilderX and installed local npm dependency `@dcloudio/uni-ui` with project-local npm cache.
-- Fixed miniapp build by changing `pages/address/address.vue` to import `uni-nav-bar` from `@dcloudio/uni-ui` directly.
-- Opened WeChat DevTools against compiled `unpackage/dist/dev/mp-weixin` directory.
-- Copied `project.config.json` into the compiled miniapp directory to satisfy WeChat DevTools appid lookup.
-- Generated a successful WeChat DevTools preview QR image.
-- Verified public frontend and backend endpoints return HTTP 200.
+## 2026-05-04
+
+- Entered Superpowers brainstorming workflow for the thesis upgrade request.
+- Inspected `D:\sky-delivery`, `D:\feynman-test`, and the original thesis path.
+- Confirmed the project was not originally a git repository.
+- Initialized a local git repository and committed rollback snapshot `431dc02 chore: snapshot before thesis upgrade`.
+- Wrote and committed Superpowers design spec `0cb5e9c docs: add thesis upgrade design spec`.
+- User changed direction to paper-only work after subagent code-fix attempts disconnected.
+- Cleaned residual code-line changes and generated Maven artifacts left by interrupted subagents.
+- Updated and committed paper-only design spec `3a10da1 docs: narrow thesis plan to paper only`.
+- Loaded Ralph PRD/convert guidance and planning-with-files guidance.
+- Created Ralph PRD, `scripts/ralph/prd.json`, and `scripts/ralph/required-gates.md`.
+- Reset `task_plan.md`, `findings.md`, and `progress.md` to this thesis-upgrade task.
+- Validated `scripts/ralph/prd.json` with PowerShell `ConvertFrom-Json`.
+- Checked `git status --short`; only planning/Ralph artifacts were modified or untracked, with no source-code modifications.
+- Marked US-002 as passing based on the evidence inventory and upgrade map in `findings.md`.
+- User requested skipping rendering and render-based acceptance.
+- Replaced render/page-PNG gates with non-render DOCX QA gates in Ralph PRD, required gates, design spec, and implementation plan.
+- Created `docs/thesis-upgrade/staged-content.md` with replacement text, diagram/table content, test table content, interface examples, and DOCX insertion strategy.
+- Ran forbidden phrase scan on `staged-content.md`; no matches were returned.
+- Marked US-003 as passing.
+- Built upgraded DOCX at `C:\Users\g'y'c\Desktop\毕业论文\初稿1-升级版.docx` using `docs/thesis-upgrade/work/build_thesis_upgrade.py`.
+- Verified original thesis hash remained `E7639ACDF4904F97F84A0CB45DFB0484B47FA8AA7BE9E3583023C9C3687A538C`.
+- Ran non-render QA with `docs/thesis-upgrade/work/qa_docx_no_render.py`; `qa-report.json` reported all checks passing.
+- Checked `git status --short -- core`; no source-code modifications were present.
+- Marked US-004 and US-005 as passing and updated required gates.
+- Committed Ralph thesis upgrade artifacts as `968a5ea docs: add Ralph thesis upgrade artifacts`.
+
+## Current Iteration
+
+Final Ralph gate check before response.
+
+## Required End Check Reminder
+
+Before any final readiness statement:
+
+1. Verify all stories in `scripts/ralph/prd.json` are `passes: true`.
+2. Verify all required gates in `scripts/ralph/required-gates.md` have passing evidence.
+3. Verify `task_plan.md`, `findings.md`, and `progress.md` are updated.
+4. Run `git status --short` and confirm no source-code modifications.
+5. If any item is incomplete, record the blocker and continue the next Ralph iteration.

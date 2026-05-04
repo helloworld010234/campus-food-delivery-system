@@ -1,0 +1,80 @@
+{
+  "project": "Sky Delivery Thesis Upgrade",
+  "branchName": "ralph/thesis-upgrade",
+  "description": "Upgrade a separate DOCX copy of the campus food delivery thesis using Feynman outputs and source evidence while preserving the school template and avoiding source-code edits.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Ralph control plane and memory files",
+      "description": "As a thesis editor, I want Ralph stories, required gates, and memory files to be initialized so that every iteration can be tracked and resumed.",
+      "acceptanceCriteria": [
+        "tasks/prd-thesis-upgrade.md exists",
+        "scripts/ralph/prd.json exists and contains ordered stories",
+        "scripts/ralph/required-gates.md exists",
+        "task_plan.md, findings.md, and progress.md describe the thesis-upgrade task rather than the previous deployment task",
+        "git status --short shows no source-code modifications"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Initialized in current Ralph setup iteration; final gate check still required before delivery."
+    },
+    {
+      "id": "US-002",
+      "title": "Evidence inventory and upgrade map",
+      "description": "As a thesis editor, I want an evidence inventory and section-by-section upgrade map so that every thesis change is grounded in source material.",
+      "acceptanceCriteria": [
+        "findings.md lists relevant Feynman outputs, thesis source, source-code evidence paths, and user style constraints",
+        "The upgrade map identifies which thesis sections receive text-only upgrades and which receive new tables or diagrams",
+        "Claims with insufficient support are marked as boundary statements or future-work statements",
+        "No source files are modified"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "findings.md now lists evidence sources, source-code evidence areas, upgrade map, and claims to avoid; git status showed only planning/Ralph artifacts, no source-code modifications."
+    },
+    {
+      "id": "US-003",
+      "title": "Thesis content assets and rewrite plan",
+      "description": "As a thesis editor, I want concrete replacement text, diagrams, tables, and interface examples prepared before DOCX editing so that the Word update is controlled.",
+      "acceptanceCriteria": [
+        "A staging markdown or structured content file exists under D:\\sky-delivery\\docs\\thesis-upgrade\\",
+        "The staging file contains upgraded text for the main target sections",
+        "Architecture diagram, deployment diagram, ER relation content, role-permission matrix, and test-case table content are prepared",
+        "Writing follows C:\\Users\\g'y'c\\Desktop\\论文提示词.md with no first person, no excessive colloquial phrasing, and preserved technical identifiers"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "docs/thesis-upgrade/staged-content.md exists with upgraded section text, diagram/table content, interface examples, and style constraints; forbidden phrase scan returned no matches."
+    },
+    {
+      "id": "US-004",
+      "title": "Upgraded DOCX generation",
+      "description": "As a thesis owner, I want a separate upgraded DOCX generated from the original template so that the original file remains safe.",
+      "acceptanceCriteria": [
+        "C:\\Users\\g'y'c\\Desktop\\毕业论文\\初稿1.docx is not modified",
+        "A new upgraded DOCX exists as a separate file",
+        "Added content uses the original document styles or compatible Word styles",
+        "The thesis does not mention this work's code-fix attempts",
+        "No source-code changes are present"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Generated separate upgraded DOCX at C:\\Users\\g'y'c\\Desktop\\毕业论文\\初稿1-升级版.docx. Original hash remained E7639ACDF4904F97F84A0CB45DFB0484B47FA8AA7BE9E3583023C9C3687A538C. git status --short -- core returned no output."
+    },
+    {
+      "id": "US-005",
+      "title": "Non-render QA, gate evidence, and final packaging",
+      "description": "As a thesis owner, I want the upgraded DOCX checked without rendering and gate evidence recorded so that the deliverable can be trusted under the no-render constraint.",
+      "acceptanceCriteria": [
+        "The upgraded DOCX can be opened by DOCX tooling without package errors",
+        "Non-render structural checks cover sections, paragraphs, tables, images, styles, and headers/footers",
+        "scripts/ralph/required-gates.md includes evidence for every required gate",
+        "All stories in scripts/ralph/prd.json have passes: true",
+        "task_plan.md, findings.md, and progress.md are updated with final evidence and any remaining limitations"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Non-render QA report at docs/thesis-upgrade/work/qa-report.json passed: upgraded DOCX opens, required package parts exist, zip has no corrupt member, tables increased from original, expected content is present, and forbidden phrase scan is clean. Rendering was skipped per user instruction."
+    }
+  ]
+}
