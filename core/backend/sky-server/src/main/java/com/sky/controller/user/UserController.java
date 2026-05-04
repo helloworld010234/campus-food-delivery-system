@@ -13,11 +13,16 @@ import com.sky.service.TokenBlacklistService;
 import com.sky.service.UserService;
 import com.sky.utils.JwtUtil;
 import com.sky.vo.UserLoginVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -76,11 +81,21 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    public Result<String> logout(jakarta.servlet.http.HttpServletRequest request) {
+    public Result<String> logout(HttpServletRequest request) {
         String token = request.getHeader(jwtProperties.getUserTokenName());
         if (token != null && !token.isBlank()) {
-            tokenBlacklistService.addToBlacklist(token, "USER", "LOGOUT");
+            LocalDateTime expiresAt = extractExpiration(token, jwtProperties.getUserSecretKey());
+            tokenBlacklistService.addToBlacklist(token, "USER", "LOGOUT", expiresAt);
         }
         return Result.success();
+    }
+
+    private LocalDateTime extractExpiration(String token, String secretKey) {
+        try {
+            Date exp = JwtUtil.getExpirationDate(secretKey, token);
+            return Instant.ofEpochMilli(exp.getTime()).atZone(ZoneId.systemDefault()).toLocalDateTime();
+        } catch (Exception e) {
+            return LocalDateTime.now().plusHours(2);
+        }
     }
 }

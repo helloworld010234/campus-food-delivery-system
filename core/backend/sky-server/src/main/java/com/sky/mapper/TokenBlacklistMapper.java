@@ -11,8 +11,8 @@ import java.util.Optional;
 @Mapper
 public interface TokenBlacklistMapper {
 
-    @Insert("insert into token_blacklist (token_hash, token_type, subject_id, expires_at, reason) " +
-            "values (#{tokenHash}, #{tokenType}, #{subjectId}, #{expiresAt}, #{reason})")
+    @Insert("insert into token_blacklist (token_hash, token_type, expires_at, reason) " +
+            "values (#{tokenHash}, #{tokenType}, #{expiresAt}, #{reason})")
     void insert(TokenBlacklist tokenBlacklist);
 
     @Select("select * from token_blacklist where token_hash = #{tokenHash}")

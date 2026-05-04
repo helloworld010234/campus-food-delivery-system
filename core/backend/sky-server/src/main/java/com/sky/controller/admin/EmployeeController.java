@@ -12,6 +12,7 @@ import com.sky.service.EmployeeService;
 import com.sky.service.TokenBlacklistService;
 import com.sky.utils.JwtUtil;
 import com.sky.vo.EmployeeLoginVO;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +21,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,12 +63,22 @@ public class EmployeeController {
     }
 
     @PostMapping("/logout")
-    public Result<String> logout(jakarta.servlet.http.HttpServletRequest request) {
+    public Result<String> logout(HttpServletRequest request) {
         String token = request.getHeader(jwtProperties.getAdminTokenName());
         if (token != null && !token.isBlank()) {
-            tokenBlacklistService.addToBlacklist(token, "ADMIN", "LOGOUT");
+            LocalDateTime expiresAt = extractExpiration(token, jwtProperties.getAdminSecretKey());
+            tokenBlacklistService.addToBlacklist(token, "ADMIN", "LOGOUT", expiresAt);
         }
         return Result.success();
+    }
+
+    private LocalDateTime extractExpiration(String token, String secretKey) {
+        try {
+            Date exp = JwtUtil.getExpirationDate(secretKey, token);
+            return Instant.ofEpochMilli(exp.getTime()).atZone(ZoneId.systemDefault()).toLocalDateTime();
+        } catch (Exception e) {
+            return LocalDateTime.now().plusHours(2);
+        }
     }
 
     @PostMapping

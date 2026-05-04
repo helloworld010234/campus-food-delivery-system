@@ -191,14 +191,15 @@ class EmployeeControllerTest {
     @Test
     void logout_shouldAddTokenToBlacklist_andReturnSuccess() throws Exception {
         when(jwtProperties.getAdminTokenName()).thenReturn("token");
-        doNothing().when(tokenBlacklistService).addToBlacklist(eq("valid-admin-token"), eq("ADMIN"), eq("LOGOUT"));
+        when(jwtProperties.getAdminSecretKey()).thenReturn("adminSecretKeyForJwtTokenGeneration12345");
+        doNothing().when(tokenBlacklistService).addToBlacklist(eq("valid-admin-token"), eq("ADMIN"), eq("LOGOUT"), any());
 
         mockMvc.perform(post("/admin/employee/logout")
                         .header("token", "valid-admin-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));
 
-        verify(tokenBlacklistService).addToBlacklist("valid-admin-token", "ADMIN", "LOGOUT");
+        verify(tokenBlacklistService).addToBlacklist(eq("valid-admin-token"), eq("ADMIN"), eq("LOGOUT"), any());
     }
 
     @Test

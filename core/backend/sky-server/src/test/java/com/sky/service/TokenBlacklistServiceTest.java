@@ -81,8 +81,9 @@ class TokenBlacklistServiceTest {
     @Test
     void addToBlacklist_shouldStoreTokenHash() {
         String token = "test.token";
+        java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusHours(2);
 
-        tokenBlacklistService.addToBlacklist(token, "ADMIN", "LOGOUT");
+        tokenBlacklistService.addToBlacklist(token, "ADMIN", "LOGOUT", expiresAt);
 
         ArgumentCaptor<TokenBlacklist> captor = ArgumentCaptor.forClass(TokenBlacklist.class);
         verify(tokenBlacklistMapper).insert(captor.capture());
@@ -90,6 +91,7 @@ class TokenBlacklistServiceTest {
         assertThat(captured.getTokenHash()).isNotBlank();
         assertThat(captured.getTokenType()).isEqualTo("ADMIN");
         assertThat(captured.getReason()).isEqualTo("LOGOUT");
+        assertThat(captured.getExpiresAt()).isEqualTo(expiresAt);
     }
 
     @Test

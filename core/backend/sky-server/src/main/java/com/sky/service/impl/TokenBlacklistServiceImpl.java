@@ -22,13 +22,13 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
     }
 
     @Override
-    public void addToBlacklist(String token, String tokenType, String reason) {
+    public void addToBlacklist(String token, String tokenType, String reason, LocalDateTime expiresAt) {
         String hash = sha256Hex(token);
         TokenBlacklist record = TokenBlacklist.builder()
                 .tokenHash(hash)
                 .tokenType(tokenType)
                 .reason(reason)
-                .expiresAt(LocalDateTime.now().plusHours(2))
+                .expiresAt(expiresAt)
                 .build();
         tokenBlacklistMapper.insert(record);
         log.debug("Token added to blacklist, hash={}", hash);

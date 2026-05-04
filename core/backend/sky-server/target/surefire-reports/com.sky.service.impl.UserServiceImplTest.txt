@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.sky.service.impl.UserServiceImplTest
 -------------------------------------------------------------------------------
-Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.321 s -- in com.sky.service.impl.UserServiceImplTest
+Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.312 s -- in com.sky.service.impl.UserServiceImplTest

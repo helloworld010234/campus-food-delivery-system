@@ -214,14 +214,15 @@ class UserControllerTest {
     @Test
     void logout_shouldAddTokenToBlacklist_andReturnSuccess() throws Exception {
         when(jwtProperties.getUserTokenName()).thenReturn("token");
-        doNothing().when(tokenBlacklistService).addToBlacklist(eq("valid-user-token"), eq("USER"), eq("LOGOUT"));
+        when(jwtProperties.getUserSecretKey()).thenReturn("userSecretKeyForJwtTokenGeneration12345");
+        doNothing().when(tokenBlacklistService).addToBlacklist(eq("valid-user-token"), eq("USER"), eq("LOGOUT"), any());
 
         mockMvc.perform(post("/user/user/logout")
                         .header("token", "valid-user-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));
 
-        verify(tokenBlacklistService).addToBlacklist("valid-user-token", "USER", "LOGOUT");
+        verify(tokenBlacklistService).addToBlacklist(eq("valid-user-token"), eq("USER"), eq("LOGOUT"), any());
     }
 
     @Test
