@@ -315,6 +315,10 @@ brainstorming (当前) -> writing-plans -> executing-plans
 | Skill | `github-ops` | `~/.claude/skills/github-ops` |
 | Skill | `finishing-a-development-branch` | `~/.claude/skills/finishing-a-development-branch` |
 | Skill | `e2e-testing` | `~/.claude/skills/e2e-testing` |
+| Skill | `feynman-audit` | `~/.claude/skills/feynman-audit` |
+| Skill | `architecture-decision-records` | `~/.claude/skills/architecture-decision-records` |
+| Skill | `verification-before-completion` | `~/.claude/skills/verification-before-completion` |
+| Skill | `verification-loop` | `~/.claude/skills/verification-loop` |
 | Agent | `tdd-guide` | `~/.claude/agents/tdd-guide.md` |
 | Agent | `security-reviewer` | `~/.claude/agents/security-reviewer.md` |
 | Agent | `java-reviewer` | `~/.claude/agents/java-reviewer.md` |
@@ -323,6 +327,12 @@ brainstorming (当前) -> writing-plans -> executing-plans
 | Agent | `silent-failure-hunter` | `~/.claude/agents/silent-failure-hunter.md` |
 | Agent | `type-design-analyzer` | `~/.claude/agents/type-design-analyzer.md` |
 | Agent | `pr-test-analyzer` | `~/.claude/agents/pr-test-analyzer.md` |
+| Agent | `code-explorer` | `~/.claude/agents/code-explorer.md` |
+| Agent | `code-architect` | `~/.claude/agents/code-architect.md` |
+| Agent | `comment-analyzer` | `~/.claude/agents/comment-analyzer.md` |
+| Agent | `performance-optimizer` | `~/.claude/agents/performance-optimizer.md` |
+| Agent | `e2e-runner` | `~/.claude/agents/e2e-runner.md` |
+| Agent | `doc-updater` | `~/.claude/agents/doc-updater.md` |
 | Rule | `git-workflow` | `rules/common/git-workflow.md` |
 | Rule | `development-workflow` | `rules/common/development-workflow.md` |
 | Rule | `security` | `rules/common/security.md` |
