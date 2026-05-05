@@ -1,0 +1,8 @@
+2026-05-05 Ralph Loop initialized for multi-merchant isolation hardening.
+Archived previous thesis run artifacts to scripts/ralph/archive/2026-05-05-thesis-upgrade/.
+Source PRD prepared at tasks/prd-multi-merchant-isolation.md.
+Converted PRD to scripts/ralph/prd.json with ordered US-001..US-007 for ECC-style execution.
+US-001 marked passing with archive + conversion evidence.
+US-002 implemented via TDD: added MerchantScopeGuard + MerchantScopeGuardTest (5 tests), and reused guard in ReportServiceImpl + WorkspaceServiceImpl.
+US-002 validation passed: mvn -f core/backend/pom.xml test -pl sky-server "-Dtest=*Scope*Test".
+US-003..US-007 remain pending.

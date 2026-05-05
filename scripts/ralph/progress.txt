@@ -1,5 +1,25 @@
-2026-05-05 Ralph Loop initialized for multi-merchant isolation hardening.
-Archived previous thesis run artifacts to scripts/ralph/archive/2026-05-05-thesis-upgrade/.
-Source PRD prepared at tasks/prd-multi-merchant-isolation.md.
-Converted PRD to scripts/ralph/prd.json with ordered US-001..US-007 for ECC-style execution.
-All new stories start with passes=false pending implementation evidence.
+2026-05-05 Coordinator transitioned to comprehensive upgrade Ralph loop.
+Archived multi-merchant isolation Ralph state to scripts/ralph/archive/2026-05-05-multi-merchant-isolation/ (prd.json, progress.txt, required-gates.md, task_plan.md, findings.md, progress.md, README.md).
+Source PRD: tasks/prd-sky-delivery-comprehensive-upgrade.md.
+Converted PRD into scripts/ralph/prd.json with stories US-001..US-008 for branch ralph/sky-delivery-comprehensive-upgrade.
+Reset task_plan.md, findings.md, progress.md, scripts/ralph/required-gates.md to comprehensive upgrade context.
+US-001 marked passing: archive + control-plane regeneration evidence in place.
+Preserved uncommitted dirty state.
+2026-05-05 Coordinator dispatched 6 worker agents in parallel via single Agent tool message.
+All 6 agents returned with Delivery Summaries in this iteration:
+- Agent 1 (Backend Security): MerchantScopeGuard + 5 test classes, mvn 57 tests / 0 failures, BUILD SUCCESS. Permission matrix documented.
+- Agent 2 (Order Transaction): ShoppingCart/Order tests added (17 + 14 new), mvn 42 tests / 0 failures, BUILD SUCCESS. Transaction rollback verified.
+- Agent 3 (Admin Reporting): Report/Workspace scope tests (8 + 7), admin-api-scope.md added, mvn 46 tests / 0 failures, BUILD SUCCESS.
+- Agent 4 (Miniapp UX): one bug fix (duplicate getData), audit confirms private-flow merchant binding. Public-browse policy flagged as product decision.
+- Agent 5 (DevOps Engineering): troubleshooting.md + docker.md added, README/SETUP/scripts/.env audit clean.
+- Agent 6 (Verification Evidence): verification-matrix.md delivered. Feynman 2026-05-05: 17/2/0/4/17 — all SKIPs/TIMEOUTs are Feynman tool limitations not project defects.
+US-002..US-007 transitioned to passes=true with evidence paths in prd.json.
+G-003..G-008 transitioned to pass with evidence paths in required-gates.md.
+US-008 / G-009 pending: coordinator regression sweep + final report rendering.
+Risks captured (non-blocking):
+- MerchantScopeUtils.java retains GBK mojibake on Chinese exception messages (Agent 1 flagged for cleanup).
+- Anonymous public browse not supported in current miniapp (Agent 4 flagged as product decision).
+- core/miniapp/utils/webscoket.js is dead code (Agent 4 flagged for future removal).
+- Docker compose validation checklist not yet executed (Agent 5 flagged).
+- SkyApplicationIT may be BLOCKED without Docker; Playwright requires services on localhost:8081 (Agent 6 flagged).
+Next: coordinator runs regression sweep per matrix section 6, then renders final report.

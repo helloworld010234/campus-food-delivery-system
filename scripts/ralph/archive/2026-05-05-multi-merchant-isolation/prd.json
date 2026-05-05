@@ -1,0 +1,105 @@
+{
+  "project": "Sky Delivery Multi-Merchant Isolation Hardening",
+  "branchName": "ralph/multi-merchant-isolation-hardening",
+  "description": "Harden tenant boundaries across core backend modules while preserving public cross-merchant browsing and enforcing strict merchant ownership for private user flows and merchant-admin operations.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Ralph control plane for isolation hardening",
+      "description": "As a maintainer, I want Ralph execution artifacts initialized for this feature so that each hardening iteration is traceable and resumable.",
+      "acceptanceCriteria": [
+        "tasks/prd-multi-merchant-isolation.md exists and matches the approved two-layer model (public browse + private strict ownership).",
+        "scripts/ralph/prd.json contains ordered stories US-001..US-007 with passes=false for a fresh run.",
+        "Previous run artifacts are archived under scripts/ralph/archive/2026-05-05-thesis-upgrade/ (prd.json and progress.txt).",
+        "Manual validation: docs/superpowers/specs/2026-05-05-multi-merchant-isolation-design.md is referenced as the source design for execution."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Initialized on 2026-05-05: previous run archived, source PRD created, and Ralph control-plane files reset for this branch."
+    },
+    {
+      "id": "US-002",
+      "title": "Merchant scope guard abstraction and baseline tests",
+      "description": "As a backend engineer, I want a shared merchant-scope guard so that tenant checks are consistent and reusable across modules.",
+      "acceptanceCriteria": [
+        "A new guard component is added under core/backend/sky-server/src/main/java/com/sky/... and reused by service-layer isolation paths.",
+        "Unit tests cover merchant account, platform account, explicit cross-merchant request rejection, and explicit merchant requirement for private flows.",
+        "Automated validation: mvn -f core/backend/pom.xml test -pl sky-server -Dtest=*Scope*Test passes.",
+        "Manual validation: a merchant account token requesting another merchant's private resource returns a business denial response."
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Added MerchantScopeGuard and baseline unit tests; reused guard in ReportServiceImpl and WorkspaceServiceImpl. Verified with mvn -f core/backend/pom.xml test -pl sky-server \"-Dtest=*Scope*Test\"."
+    },
+    {
+      "id": "US-003",
+      "title": "Admin domain isolation for employee and catalog management",
+      "description": "As a merchant admin, I want admin operations constrained to my own merchant so that cross-tenant management is impossible.",
+      "acceptanceCriteria": [
+        "Employee, merchant-business-status, category, dish, and setmeal admin operations reject cross-merchant access for merchant accounts.",
+        "Platform-admin behavior remains available for allowed global endpoints.",
+        "Automated validation: targeted WebMvcTest/service tests for employee/category/dish/setmeal/merchant isolation paths pass.",
+        "UI verification: under merchant-admin login, admin pages do not expose successful edits/updates to another merchant's resources."
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Private user-chain isolation for cart and order flows",
+      "description": "As an end user, I want cart and order operations bound to one merchant so that data cannot mix across merchants.",
+      "acceptanceCriteria": [
+        "Shopping cart add/sub/list/clean require explicit merchant context in multi-merchant mode and enforce userId+merchantId isolation.",
+        "Order submit/repetition/checkout paths enforce same-merchant ownership for cart items, dishes, setmeals, and orders.",
+        "Automated validation: cart/order service and controller tests cover missing merchant, mixed-merchant payloads, and cross-merchant access rejection.",
+        "Manual validation: API calls attempting cross-merchant cart/order operations fail with business denial."
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Merchant-scoped reporting and workspace statistics",
+      "description": "As a merchant admin, I want reporting and dashboard stats scoped to my merchant so that global data is never leaked.",
+      "acceptanceCriteria": [
+        "Report service paths, especially user statistics and export-related aggregation, apply resolved merchant scope for merchant accounts.",
+        "Workspace overview metrics remain merchant-scoped for merchant accounts and preserve platform visibility semantics.",
+        "Automated validation: report/workspace tests verify merchant A cannot obtain merchant B or global-only aggregates.",
+        "UI verification: dashboard/report views under merchant-admin account reflect only that merchant's data."
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Public browsing regression protection",
+      "description": "As a user, I want cross-merchant public browsing to keep working so that hardening private flows does not break discovery.",
+      "acceptanceCriteria": [
+        "Public endpoints (shop/category/dish/setmeal browsing) continue to allow cross-merchant requests for enabled merchants.",
+        "Private flow hardening does not alter anonymous/public browse behavior.",
+        "Automated validation: API/controller tests confirm cross-merchant public browsing still succeeds.",
+        "UI verification: miniapp browsing can switch merchants and still load public menu/shop data."
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "ECC verification and Ralph gate evidence",
+      "description": "As a maintainer, I want strict verification evidence captured so that the hardening release is trustworthy and reproducible.",
+      "acceptanceCriteria": [
+        "Automated validation: mvn -f core/backend/pom.xml test passes for the full backend suite.",
+        "Automated validation: in verification/e2e-tests, npx playwright test passes (including any newly added isolation cases).",
+        "Manual validation: scripts/ralph/progress.txt records per-story outcomes and unresolved risks, if any.",
+        "All stories in scripts/ralph/prd.json are updated with passes=true only after evidence is collected."
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
