@@ -32,11 +32,11 @@ import com.sky.mapper.ShoppingCartMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.properties.StorefrontProperties;
 import com.sky.result.PageResult;
+import com.sky.security.MerchantScopeGuard;
 import com.sky.service.CampusService;
 import com.sky.service.MerchantService;
 import com.sky.service.OrderService;
 import com.sky.support.MultiMerchantSchemaSupport;
-import com.sky.utils.MerchantScopeUtils;
 import com.sky.utils.StorefrontImageResolver;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.MerchantVO;
@@ -59,10 +59,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Order lifecycle service. The user-private chain (cart submit, payment, history,
+ * detail, cancel, repetition, reminder) MUST be bound to {@code userId + merchantId}
+ * when the multi-merchant schema is ready. Cross-merchant data is rejected through
+ * {@link MerchantScopeGuard} rather than ad-hoc checks scattered in this class.
+ *
+ * <p>Legacy single-merchant fallback is preserved when
+ * {@link MultiMerchantSchemaSupport} reports the columns are missing: only then we
+ * fall back to "first enabled merchant" / null-merchant mappers.</p>
+ */
 @Service
 public class OrderServiceImpl implements OrderService {
 
     private static final BigDecimal MOCK_PAY_AMOUNT = new BigDecimal("0.01");
+
+    private static final String MSG_ORDER_NOT_FOUND = "order not found";
+    private static final String MSG_ORDER_PAID = "order already paid";
+    private static final String MSG_ORDER_STATUS_INVALID = "order status invalid";
+    private static final String MSG_ADDRESS_EMPTY = "user address is empty, cannot submit order";
+    private static final String MSG_CART_EMPTY = "shopping cart is empty, cannot submit order";
+    private static final String MSG_ORDER_FORBIDDEN_USER = "no permission to access this order";
+    private static final String MSG_USER_ENDPOINT_ONLY = "this endpoint is for end users only";
+    private static final String MSG_ADMIN_ENDPOINT_ONLY = "this endpoint is for admin only";
+    private static final String MSG_CAMPUS_CLOSED = "current campus is not open";
+    private static final String MSG_MERCHANT_DISABLED = "current merchant is unavailable";
+    private static final String MSG_MERCHANT_NOT_OPEN = "current merchant is closed";
 
     @Autowired
     private OrdersMapper ordersMapper;
@@ -106,31 +128,45 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private MultiMerchantSchemaSupport schemaSupport;
 
+    @Autowired
+    private MerchantScopeGuard merchantScopeGuard;
+
     @Override
     @Transactional
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
-        Long requestedMerchantId = ordersSubmitDTO.getMerchantId() != null
-                ? ordersSubmitDTO.getMerchantId()
-                : ordersSubmitDTO.getShopId();
-        Long merchantId = resolveRequestedMerchantId(requestedMerchantId);
+        Long merchantId = resolvePrivateMerchantId(
+                ordersSubmitDTO.getMerchantId(), ordersSubmitDTO.getShopId(), "order submit");
 
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
         if (addressBook == null) {
-            throw new AddressBookBusinessException("鐢ㄦ埛鍦板潃涓虹┖锛屼笉鑳戒笅鍗?");
+            throw new AddressBookBusinessException(MSG_ADDRESS_EMPTY);
         }
 
         Merchant merchant = merchantService.getById(merchantId);
-        Campus campus = campusService.getById(merchant.getCampusId());
+        Campus campus = merchant == null ? null : campusService.getById(merchant.getCampusId());
         validateMerchantOrderable(campus, merchant);
 
         Long userId = BaseContext.getCurrentId();
+        Long cartScopeId = schemaSupport.supportsShoppingCartScope() ? merchant.getId() : null;
         ShoppingCart condition = ShoppingCart.builder()
                 .userId(userId)
-                .merchantId(schemaSupport.supportsShoppingCartScope() ? merchant.getId() : null)
+                .merchantId(cartScopeId)
                 .build();
         List<ShoppingCart> cartList = shoppingCartMapper.list(condition);
         if (CollectionUtils.isEmpty(cartList)) {
-            throw new ShoppingCartBusinessException("璐墿杞︿负绌猴紝涓嶈兘涓嬪崟");
+            throw new ShoppingCartBusinessException(MSG_CART_EMPTY);
+        }
+
+        // Defensive cross-merchant check on cart rows. Even though the mapper is
+        // scoped, we make sure no row leaked from a different merchant before we
+        // copy it into the order details.
+        if (schemaSupport.supportsShoppingCartScope()) {
+            for (ShoppingCart cart : cartList) {
+                if (cart.getMerchantId() != null) {
+                    merchantScopeGuard.assertSameMerchant(merchant.getId(), cart.getMerchantId(),
+                            "shopping cart item");
+                }
+            }
         }
 
         BigDecimal goodsAmount = BigDecimal.ZERO;
@@ -181,6 +217,10 @@ public class OrderServiceImpl implements OrderService {
             orderDetailList.add(orderDetail);
         }
         orderDetailMapper.insertBatch(orderDetailList);
+
+        // Cart cleanup is part of the same transaction as order creation; we only
+        // delete rows that match the resolved merchant scope so users with parallel
+        // carts on other merchants are not affected.
         if (schemaSupport.supportsShoppingCartScope()) {
             shoppingCartMapper.deleteByUserIdAndMerchantId(userId, merchant.getId());
         } else {
@@ -200,10 +240,10 @@ public class OrderServiceImpl implements OrderService {
         Long userId = BaseContext.getCurrentId();
         Orders ordersDB = ordersMapper.getByNumberAndUserId(ordersPaymentDTO.getOrderNumber(), userId);
         if (ordersDB == null) {
-            throw new OrderBusinessException("璁㈠崟涓嶅瓨鍦?");
+            throw new OrderBusinessException(MSG_ORDER_NOT_FOUND);
         }
         if (Orders.PAID.equals(ordersDB.getPayStatus())) {
-            throw new OrderBusinessException("璇ヨ鍗曞凡鏀粯");
+            throw new OrderBusinessException(MSG_ORDER_PAID);
         }
 
         if (Boolean.TRUE.equals(storefrontProperties.getMockPayment())) {
@@ -215,12 +255,12 @@ public class OrderServiceImpl implements OrderService {
         JsonNode jsonObject = weChatPayUtil.pay(
                 ordersPaymentDTO.getOrderNumber(),
                 MOCK_PAY_AMOUNT,
-                (ordersDB.getMerchantName() == null ? "璁㈠崟" : ordersDB.getMerchantName() + "璁㈠崟"),
+                (ordersDB.getMerchantName() == null ? "order" : ordersDB.getMerchantName() + " order"),
                 user.getOpenid()
         );
 
         if ("ORDERPAID".equals(jsonObject.get("code").asText())) {
-            throw new OrderBusinessException("璇ヨ鍗曞凡鏀粯");
+            throw new OrderBusinessException(MSG_ORDER_PAID);
         }
 
         OrderPaymentVO vo = objectMapper.treeToValue(jsonObject, OrderPaymentVO.class);
@@ -251,7 +291,7 @@ public class OrderServiceImpl implements OrderService {
                 .checkoutTime(LocalDateTime.now())
                 .build());
 
-        sendOrderEventToMerchant(ordersDB.getMerchantId(), 1, ordersDB.getId(), "璁㈠崟鍙凤細" + outTradeNo);
+        sendOrderEventToMerchant(ordersDB.getMerchantId(), 1, ordersDB.getId(), "order: " + outTradeNo);
     }
 
     @Override
@@ -283,7 +323,7 @@ public class OrderServiceImpl implements OrderService {
     public void cancelOrderById(Long id) throws Exception {
         Orders orders = getAccessibleUserOrder(id);
         if (orders.getStatus() > Orders.TO_BE_CONFIRMED) {
-            throw new OrderBusinessException("璁㈠崟鐘舵€侀敊璇?");
+            throw new OrderBusinessException(MSG_ORDER_STATUS_INVALID);
         }
 
         Orders toUpdate = new Orders();
@@ -292,7 +332,7 @@ public class OrderServiceImpl implements OrderService {
             toUpdate.setPayStatus(Orders.REFUND);
         }
         toUpdate.setStatus(Orders.CANCELLED);
-        toUpdate.setCancelReason("鐢ㄦ埛鍙栨秷");
+        toUpdate.setCancelReason("user cancelled");
         toUpdate.setCancelTime(LocalDateTime.now());
         ordersMapper.update(toUpdate);
     }
@@ -301,11 +341,25 @@ public class OrderServiceImpl implements OrderService {
     public void repetition(Long id) {
         Orders orders = getAccessibleUserOrder(id);
         Long userId = BaseContext.getCurrentId();
+
+        // Reorder must write into the original order's merchant cart. We never
+        // silently fall back to "first enabled merchant" in multi-merchant mode -
+        // an order written without a merchant in that mode is a data integrity
+        // bug, not something to paper over here.
+        Long targetMerchantId = null;
+        if (schemaSupport.supportsShoppingCartScope()) {
+            if (orders.getMerchantId() == null) {
+                throw new BaseException("original order has no merchant context, cannot repeat");
+            }
+            targetMerchantId = orders.getMerchantId();
+        }
+        final Long resolvedMerchantId = targetMerchantId;
+
         List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
         List<ShoppingCart> shoppingCartList = orderDetailList.stream().map(item -> {
             ShoppingCart shoppingCart = new ShoppingCart();
             BeanUtils.copyProperties(item, shoppingCart, "id");
-            shoppingCart.setMerchantId(schemaSupport.supportsShoppingCartScope() ? resolveRequestedMerchantId(orders.getMerchantId()) : null);
+            shoppingCart.setMerchantId(resolvedMerchantId);
             shoppingCart.setUserId(userId);
             shoppingCart.setCreateTime(LocalDateTime.now());
             return shoppingCart;
@@ -320,7 +374,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
         if (schemaSupport.supportsOrdersScope()) {
-            ordersPageQueryDTO.setMerchantId(MerchantScopeUtils.resolveQueryMerchantId(ordersPageQueryDTO.getMerchantId()));
+            ordersPageQueryDTO.setMerchantId(merchantScopeGuard.resolveAdminQueryMerchantId(
+                    ordersPageQueryDTO.getMerchantId()));
         } else {
             ordersPageQueryDTO.setMerchantId(null);
         }
@@ -333,7 +388,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderStatisticsVO statistics() {
         Long merchantId = schemaSupport.supportsOrdersScope()
-                ? MerchantScopeUtils.resolveQueryMerchantId(null)
+                ? merchantScopeGuard.resolveAdminQueryMerchantId(null)
                 : null;
         Integer toBeConfirmed = schemaSupport.supportsOrdersScope()
                 ? ordersMapper.countStatus(Orders.TO_BE_CONFIRMED, merchantId)
@@ -365,7 +420,7 @@ public class OrderServiceImpl implements OrderService {
     public void rejection(OrdersRejectionDTO ordersRejectionDTO) throws Exception {
         Orders ordersDB = getAccessibleAdminOrder(ordersRejectionDTO.getId());
         if (!Orders.TO_BE_CONFIRMED.equals(ordersDB.getStatus())) {
-            throw new OrderBusinessException("璁㈠崟鐘舵€侀敊璇?");
+            throw new OrderBusinessException(MSG_ORDER_STATUS_INVALID);
         }
 
         Orders orders = new Orders();
@@ -397,7 +452,7 @@ public class OrderServiceImpl implements OrderService {
     public void delivery(Long id) {
         Orders ordersDB = getAccessibleAdminOrder(id);
         if (!Orders.CONFIRMED.equals(ordersDB.getStatus())) {
-            throw new OrderBusinessException("璁㈠崟鐘舵€侀敊璇?");
+            throw new OrderBusinessException(MSG_ORDER_STATUS_INVALID);
         }
 
         ordersMapper.update(Orders.builder()
@@ -410,7 +465,7 @@ public class OrderServiceImpl implements OrderService {
     public void complete(Long id) {
         Orders ordersDB = getAccessibleAdminOrder(id);
         if (!Orders.DELIVERY_IN_PROGRESS.equals(ordersDB.getStatus())) {
-            throw new OrderBusinessException("璁㈠崟鐘舵€侀敊璇?");
+            throw new OrderBusinessException(MSG_ORDER_STATUS_INVALID);
         }
 
         ordersMapper.update(Orders.builder()
@@ -423,13 +478,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public void reminder(Long id) {
         Orders ordersDB = getAccessibleUserOrder(id);
-        sendOrderEventToMerchant(ordersDB.getMerchantId(), 2, id, "璁㈠崟鍙凤細" + ordersDB.getNumber());
+        sendOrderEventToMerchant(ordersDB.getMerchantId(), 2, id, "order: " + ordersDB.getNumber());
     }
 
     @Override
     public LocalDateTime getEstimatedDeliveryTime(Long merchantId, String customerAddress) {
-        Merchant merchant = merchantService.getById(resolveRequestedMerchantId(merchantId));
-        Campus campus = campusService.getById(merchant.getCampusId());
+        Long resolvedMerchantId = resolvePrivateMerchantId(merchantId, null, "estimated delivery time");
+        Merchant merchant = merchantService.getById(resolvedMerchantId);
+        Campus campus = merchant == null ? null : campusService.getById(merchant.getCampusId());
         validateMerchantOrderable(campus, merchant);
         Integer minutes = campus.getEstimatedDeliveryMinutes();
         if (minutes == null || minutes <= 0) {
@@ -441,13 +497,20 @@ public class OrderServiceImpl implements OrderService {
     private Orders getAccessibleOrder(Long id) {
         Orders orders = ordersMapper.getById(id);
         if (orders == null) {
-            throw new OrderBusinessException("璁㈠崟涓嶅瓨鍦?");
+            throw new OrderBusinessException(MSG_ORDER_NOT_FOUND);
         }
 
         if (BaseContext.getCurrentAccountType() != null) {
-            MerchantScopeUtils.assertAccessible(orders.getMerchantId());
-        } else if (!BaseContext.getCurrentId().equals(orders.getUserId())) {
-            throw new BaseException("鏃犳潈鏌ョ湅璇ヨ鍗?");
+            // Admin path: platform accounts pass through, merchant accounts must
+            // own the order. Same semantics as MerchantScopeUtils.assertAccessible
+            // but routed through the centralised guard so behaviour stays in sync
+            // with Agent 1's permission matrix.
+            merchantScopeGuard.assertMerchantAccountCanAccess(orders.getMerchantId(), "order");
+        } else {
+            Long currentUserId = BaseContext.getCurrentId();
+            if (currentUserId == null || !currentUserId.equals(orders.getUserId())) {
+                throw new BaseException(MSG_ORDER_FORBIDDEN_USER);
+            }
         }
         return orders;
     }
@@ -455,7 +518,7 @@ public class OrderServiceImpl implements OrderService {
     private Orders getAccessibleUserOrder(Long id) {
         Orders orders = getAccessibleOrder(id);
         if (BaseContext.getCurrentAccountType() != null) {
-            throw new BaseException("褰撳墠鎺ュ彛浠呴檺鐢ㄦ埛浣跨敤");
+            throw new BaseException(MSG_USER_ENDPOINT_ONLY);
         }
         return orders;
     }
@@ -463,7 +526,7 @@ public class OrderServiceImpl implements OrderService {
     private Orders getAccessibleAdminOrder(Long id) {
         Orders orders = getAccessibleOrder(id);
         if (BaseContext.getCurrentAccountType() == null) {
-            throw new BaseException("褰撳墠鎺ュ彛浠呴檺鍚庡彴浣跨敤");
+            throw new BaseException(MSG_ADMIN_ENDPOINT_ONLY);
         }
         return orders;
     }
@@ -523,6 +586,12 @@ public class OrderServiceImpl implements OrderService {
         orderDetailList.forEach(item -> item.setImage(storefrontImageResolver.resolve(item.getImage())));
     }
 
+    /**
+     * Mock-payment-aware refund. When the project runs in mock-payment mode we
+     * do not call WeChat Pay; we just signal "refund accepted" so the caller can
+     * flip the order pay status. Real WeChat Pay integration is intentionally
+     * stubbed out and not part of this upgrade.
+     */
     private boolean refundIfNecessary(Orders orders) throws Exception {
         if (orders == null || !Orders.PAID.equals(orders.getPayStatus())) {
             return false;
@@ -566,13 +635,13 @@ public class OrderServiceImpl implements OrderService {
 
     private void validateMerchantOrderable(Campus campus, Merchant merchant) {
         if (campus == null || !Integer.valueOf(1).equals(campus.getStatus())) {
-            throw new BaseException("褰撳墠鏍″洯鏆傛湭寮€鏀炬湇鍔?");
+            throw new BaseException(MSG_CAMPUS_CLOSED);
         }
         if (merchant == null || !Integer.valueOf(1).equals(merchant.getStatus())) {
-            throw new BaseException("褰撳墠鍟嗘埛涓嶅彲鐢?");
+            throw new BaseException(MSG_MERCHANT_DISABLED);
         }
         if (!Integer.valueOf(1).equals(merchant.getBusinessStatus())) {
-            throw new BaseException("褰撳墠鍟嗘埛宸叉墦鐑?");
+            throw new BaseException(MSG_MERCHANT_NOT_OPEN);
         }
     }
 
@@ -614,7 +683,36 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private Long resolveRequestedMerchantId(Long merchantId) {
+    /**
+     * Resolve the merchant id for a private user-side write/read that crosses the
+     * merchant boundary (submit, repeat, estimated time). When the multi-merchant
+     * schema is ready we delegate to {@link MerchantScopeGuard#requireExplicitMerchantId}
+     * which throws if neither merchant nor shop id is supplied. We never fall
+     * back to "first enabled merchant" for private writes in that mode.
+     *
+     * <p>In legacy single-merchant fallback we keep the old behaviour: pick the
+     * first enabled merchant or the configured default merchant id.</p>
+     */
+    private Long resolvePrivateMerchantId(Long merchantId, Long shopId, String operation) {
+        if (schemaSupport.isCoreSchemaReady()) {
+            return merchantScopeGuard.requireExplicitMerchantId(merchantId, shopId, operation);
+        }
+        Long resolved = merchantId != null ? merchantId : shopId;
+        if (resolved != null) {
+            return resolved;
+        }
+        Merchant merchant = merchantService.getFirstEnabledMerchant(null);
+        return merchant == null ? schemaSupport.getDefaultMerchantId() : merchant.getId();
+    }
+
+    /**
+     * Backwards-compat helper used by paths that still need a "best effort"
+     * merchant resolution. Callers must avoid this for private writes when the
+     * schema is multi-merchant ready - use {@link #resolvePrivateMerchantId}
+     * instead. Kept for internal helper uses only.
+     */
+    @SuppressWarnings("unused")
+    private Long resolveLegacyMerchantId(Long merchantId) {
         if (merchantId != null) {
             return merchantId;
         }
