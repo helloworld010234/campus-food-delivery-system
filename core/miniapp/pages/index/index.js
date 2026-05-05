@@ -525,42 +525,6 @@ export default {
       this.menuLoadingCount = Math.max(0, this.menuLoadingCount - 1)
       this.menuLoading = this.menuLoadingCount > 0
     },
-    getData() {
-      const res =
-        typeof wx.getMenuButtonBoundingClientRect === "function"
-          ? wx.getMenuButtonBoundingClientRect()
-          : null
-      this.shopStatus = 1
-      this.setShopStatus(1)
-      this.selectHeight = res ? res.height : 0
-
-      if (this.token() !== "") {
-        return
-      }
-
-      uni.showModal({
-        title: "温馨提示",
-        content: "请先完成微信登录后再开始点餐。",
-        showCancel: false,
-        success: async (result) => {
-          if (!result.confirm) {
-            return
-          }
-
-          try {
-            const jsCode = await this.loginSync()
-            const userInfo = await this.getUserProfileSync()
-            this.setBaseUserInfo(userInfo.userInfo)
-            await this.handleUserLogin(jsCode)
-          } catch (error) {
-            uni.showToast({
-              title: "登录已取消",
-              icon: "none",
-            })
-          }
-        },
-      })
-    },
     syncAuthorizedUserInfo() {
       return new Promise((resolve) => {
         if (typeof uni === "undefined" || typeof uni.getUserInfo !== "function") {
