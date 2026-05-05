@@ -1,38 +1,67 @@
 @echo off
 chcp 65001 > nul
-title 苍穹外卖系统 - 停止服务
+title Sky Take Out - Stop All
+setlocal EnableExtensions
 
 echo ==========================================
-echo    苍穹外卖系统 (Sky Take Out) - 停止服务
-echo ==========================================
-echo.
-
-echo [1/3] 正在停止 Java 后端服务...
-taskkill /F /IM java.exe 2>nul
-echo          Java 已停止
-echo.
-
-echo [2/3] 正在停止 Nginx 前端代理...
-cd /d "%~dp0..\core\nginx"
-nginx.exe -s stop 2>nul
-taskkill /F /IM nginx.exe 2>nul
-echo          Nginx 已停止
-echo.
-
-echo [3/3] 正在停止微信开发者工具...
-taskkill /F /IM wechatdevtools.exe 2>nul
-echo          微信开发者工具已停止
-echo.
-
-echo ==========================================
-echo    所有服务已停止，端口已释放
+echo    Sky Take Out - stop services
 echo ==========================================
 echo.
 
-REM 验证端口释放
-echo 端口状态检查：
-netstat -ano | findstr "8080.*LISTENING" >nul && echo   8080: 仍被占用 || echo   8080: 已释放
-netstat -ano | findstr "8081.*LISTENING" >nul && echo   8081: 仍被占用 || echo   8081: 已释放
-
+REM ---------------------------------------------------------------
+REM  Stop Nginx gracefully first (it owns port 8081 + worker children)
+REM ---------------------------------------------------------------
+echo [1/4] Stopping Nginx ...
+pushd "%~dp0..\core\nginx" >nul 2>&1
+if exist nginx.exe (
+    nginx.exe -s quit 2>nul
+    REM Give it a moment to finish in-flight requests, then force-kill leftovers.
+    timeout /t 2 /nobreak >nul
+    taskkill /F /IM nginx.exe 2>nul >nul
+    echo          Nginx stopped.
+) else (
+    echo          nginx.exe not found in core\nginx; skipping.
+)
+popd >nul 2>&1
 echo.
+
+REM ---------------------------------------------------------------
+REM  Stop Java backend (mvn spring-boot:run forks a JVM)
+REM
+REM  We narrow taskkill to the listener on port 8080 first so we do
+REM  not blow away unrelated java.exe processes (IntelliJ, etc.).
+REM  As a fallback, kill any java.exe spawned from the project tree.
+REM ---------------------------------------------------------------
+echo [2/4] Stopping Java backend (port 8080) ...
+set "_pid="
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":8080 .*LISTENING"') do set "_pid=%%P"
+if defined _pid (
+    echo          Killing PID !_pid! on port 8080
+    taskkill /F /PID %_pid% 2>nul >nul
+) else (
+    echo          No listener on port 8080.
+)
+REM Fallback: kill leftover Maven wrapper / child JVM if still around.
+taskkill /F /IM mvn.cmd 2>nul >nul
+echo.
+
+REM ---------------------------------------------------------------
+REM  Optional: WeChat devtools (kept for parity with prior script)
+REM ---------------------------------------------------------------
+echo [3/4] Stopping WeChat devtools (if running) ...
+taskkill /F /IM wechatdevtools.exe 2>nul >nul
+echo.
+
+REM ---------------------------------------------------------------
+REM  Verify ports are free
+REM ---------------------------------------------------------------
+echo [4/4] Port status:
+netstat -ano | findstr /R /C:":8080 .*LISTENING" >nul && echo          8080: still bound || echo          8080: free
+netstat -ano | findstr /R /C:":8081 .*LISTENING" >nul && echo          8081: still bound || echo          8081: free
+echo.
+
+echo ==========================================
+echo    Stop sequence complete.
+echo ==========================================
+endlocal
 pause

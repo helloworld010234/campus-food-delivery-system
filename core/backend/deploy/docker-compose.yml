@@ -1,0 +1,135 @@
+# =============================================================
+# Sky Take Out - docker-compose (PROPOSED, not yet validated)
+#
+# Bring up MySQL, Redis, sky-server. The host-mounted init.sql
+# seeds the database on first boot. Multi-merchant migration is
+# applied by the same volume mount via 02-multi-merchant.sql.
+#
+# Usage:
+#   cd D:\sky-delivery
+#   copy tooling\.env.example .env  (and fill in values)
+#   docker compose -f core/backend/deploy/docker-compose.yml --env-file .env up -d
+#
+# IMPORTANT:
+#   * All paths are repo-relative. Run docker compose from the repo
+#     root with -f to keep the build context clean.
+#   * `sky_logs` and DB volumes are NAMED volumes; they are stored
+#     under Docker's data root (typically NOT C:\). To force them
+#     onto D:\, switch to bind mounts under D:\sky-delivery\runtime\.
+#   * Do not commit a populated .env. Only the template is tracked.
+# =============================================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sky-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Shanghai
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-time-zone=+08:00
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Files in /docker-entrypoint-initdb.d are run in lexical order
+      # ONLY on first boot of an empty data volume.
+      - ../../database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../scripts/phase1_multi_merchant_schema.sql:/docker-entrypoint-initdb.d/02-multi-merchant.sql:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - sky-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: sky-redis
+    restart: unless-stopped
+    command: >
+      sh -c '
+      if [ -n "${REDIS_PASSWORD}" ]; then
+        redis-server --requirepass "${REDIS_PASSWORD}" --appendonly yes;
+      else
+        redis-server --appendonly yes;
+      fi'
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli -a \"${REDIS_PASSWORD:-}\" ping || redis-cli ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - sky-net
+
+  sky-server:
+    build:
+      context: ../..
+      dockerfile: core/backend/deploy/Dockerfile
+    image: sky-delivery/sky-server:dev
+    container_name: sky-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DATABASE: ${REDIS_DATABASE:-0}
+      JWT_ADMIN_SECRET_KEY: ${JWT_ADMIN_SECRET_KEY}
+      JWT_USER_SECRET_KEY: ${JWT_USER_SECRET_KEY}
+      ALIYUN_ACCESS_KEY_ID: ${ALIYUN_ACCESS_KEY_ID:-}
+      ALIYUN_ACCESS_KEY_SECRET: ${ALIYUN_ACCESS_KEY_SECRET:-}
+      ALIYUN_BUCKET_NAME: ${ALIYUN_BUCKET_NAME:-}
+      ALIYUN_ENDPOINT: ${ALIYUN_ENDPOINT:-oss-cn-hangzhou.aliyuncs.com}
+      WECHAT_APPID: ${WECHAT_APPID:-}
+      WECHAT_SECRET: ${WECHAT_SECRET:-}
+      MOCK_USER_LOGIN: ${MOCK_USER_LOGIN:-true}
+      MOCK_PAYMENT: ${MOCK_PAYMENT:-true}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost}
+    ports:
+      - "8080:8080"
+    volumes:
+      - sky_logs:/var/log/sky
+      # Read-only mount for WeChat Pay artifacts (only when MOCK_PAYMENT=false).
+      # Place real PEM files under D:\sky-delivery\secrets\ on the host.
+      # - ../../../secrets/wechat:/etc/sky/wechat:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/internal/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+    networks:
+      - sky-net
+
+volumes:
+  mysql_data:
+  redis_data:
+  sky_logs:
+
+networks:
+  sky-net:
+    driver: bridge

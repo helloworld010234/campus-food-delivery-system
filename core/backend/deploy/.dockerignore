@@ -1,0 +1,24 @@
+# Don't ship build leftovers or local dev caches into the image.
+# Used by `docker build core/backend`.
+
+**/target/
+**/.idea/
+**/.vscode/
+**/.mvn/wrapper/maven-wrapper.jar
+**/*.log
+**/.DS_Store
+**/.git/
+**/.gitignore
+
+# Test reports / jacoco
+**/surefire-reports/
+**/site/jacoco/
+**/jacoco.exec
+
+# Local environment
+.env
+*.env.local
+
+# OS / IDE droppings
+**/Thumbs.db
+**/desktop.ini
