@@ -93,7 +93,13 @@ public class MerchantServiceImpl implements MerchantService {
             return buildFallbackMerchant(campusService.getDefaultCampus());
         }
         Merchant merchant = merchantMapper.getById(id);
-        return merchant == null ? buildFallbackMerchant(campusService.getDefaultCampus()) : merchant;
+        if (merchant == null) {
+            return buildFallbackMerchant(campusService.getDefaultCampus());
+        }
+        // Enforce merchant-scope read: a merchant account must not read another
+        // merchant's record. Platform accounts pass through.
+        MerchantScopeUtils.assertAccessible(merchant.getId());
+        return merchant;
     }
 
     @Override

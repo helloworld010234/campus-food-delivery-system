@@ -103,4 +103,46 @@ class TokenBlacklistServiceTest {
 
         assertThat(result).isEqualTo(5);
     }
+
+    @Test
+    void addToBlacklist_shouldHashDifferentTokens_toDifferentValues() {
+        // Distinct tokens must never collide, otherwise one logout could
+        // invalidate another active session.
+        java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusHours(2);
+        ArgumentCaptor<TokenBlacklist> captor = ArgumentCaptor.forClass(TokenBlacklist.class);
+
+        tokenBlacklistService.addToBlacklist("token.alpha", "ADMIN", "LOGOUT", expiresAt);
+        tokenBlacklistService.addToBlacklist("token.beta", "ADMIN", "LOGOUT", expiresAt);
+
+        verify(tokenBlacklistMapper, times(2)).insert(captor.capture());
+        String firstHash = captor.getAllValues().get(0).getTokenHash();
+        String secondHash = captor.getAllValues().get(1).getTokenHash();
+        assertThat(firstHash).isNotEqualTo(secondHash);
+        assertThat(firstHash).hasSize(64); // SHA-256 hex
+        assertThat(secondHash).hasSize(64);
+    }
+
+    @Test
+    void addToBlacklist_shouldHashSameTokenDeterministically() {
+        // Same token revoked twice must hit the same hash so the existing
+        // unique constraint on token_hash works as expected.
+        java.time.LocalDateTime expiresAt = java.time.LocalDateTime.now().plusHours(2);
+        ArgumentCaptor<TokenBlacklist> captor = ArgumentCaptor.forClass(TokenBlacklist.class);
+
+        tokenBlacklistService.addToBlacklist("token.same", "ADMIN", "LOGOUT", expiresAt);
+        tokenBlacklistService.addToBlacklist("token.same", "ADMIN", "LOGOUT", expiresAt);
+
+        verify(tokenBlacklistMapper, times(2)).insert(captor.capture());
+        assertThat(captor.getAllValues().get(0).getTokenHash())
+                .isEqualTo(captor.getAllValues().get(1).getTokenHash());
+    }
+
+    @Test
+    void isBlacklisted_shouldNotPropagateException_evenForNullToken() {
+        // SHA-256 of a null token would NPE; the service must remain
+        // resilient: a query failure must not block legitimate traffic.
+        boolean result = tokenBlacklistService.isBlacklisted(null);
+
+        assertThat(result).isFalse();
+    }
 }
