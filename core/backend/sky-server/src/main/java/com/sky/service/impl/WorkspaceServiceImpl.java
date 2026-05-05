@@ -6,8 +6,8 @@ import com.sky.mapper.DishMapper;
 import com.sky.mapper.OrdersMapper;
 import com.sky.mapper.SetmealMapper;
 import com.sky.mapper.UserMapper;
+import com.sky.security.MerchantScopeGuard;
 import com.sky.service.WorkspaceService;
-import com.sky.utils.MerchantScopeUtils;
 import com.sky.vo.BusinessDataVO;
 import com.sky.vo.DishOverViewVO;
 import com.sky.vo.OrderOverViewVO;
@@ -20,6 +20,26 @@ import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Workspace dashboard service.
+ *
+ * <h2>Platform vs merchant semantics</h2>
+ * Every workspace metric ("today" business data, order overview, dish
+ * overview, setmeal overview) routes its merchant scope through
+ * {@link MerchantScopeGuard#resolveAdminQueryMerchantId(Long)}:
+ * <ul>
+ *   <li>Platform admin: {@code null} merchant id is allowed and means
+ *       "aggregate across all merchants" - the platform-level dashboard.</li>
+ *   <li>Merchant admin / merchant staff: the guard substitutes the bound
+ *       merchant id, so the workspace numbers always reflect a single
+ *       merchant. Merchant accounts cannot pass a different id and cannot
+ *       see global metrics.</li>
+ * </ul>
+ *
+ * The same resolution rule is used by the report and report-export paths,
+ * so on-screen workspace, on-screen report, and Excel export always share
+ * an identical merchant scope.
+ */
 @Service
 public class WorkspaceServiceImpl implements WorkspaceService {
 
@@ -35,12 +55,15 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     @Autowired
     private SetmealMapper setmealMapper;
 
+    @Autowired
+    private MerchantScopeGuard merchantScopeGuard;
+
     @Override
     public BusinessDataVO getBusinessData(LocalDateTime begin, LocalDateTime end) {
         Map<String, Object> map = new HashMap<>();
         map.put("begin", begin);
         map.put("end", end);
-        map.put("merchantId", MerchantScopeUtils.resolveQueryMerchantId(null));
+        map.put("merchantId", merchantScopeGuard.resolveAdminQueryMerchantId(null));
 
         Integer totalOrderCount = orderMapper.countByMap(map);
 
@@ -71,7 +94,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     public OrderOverViewVO getOrderOverView() {
         Map<String, Object> map = new HashMap<>();
         map.put("begin", LocalDateTime.now().with(LocalTime.MIN));
-        map.put("merchantId", MerchantScopeUtils.resolveQueryMerchantId(null));
+        map.put("merchantId", merchantScopeGuard.resolveAdminQueryMerchantId(null));
 
         map.put("status", Orders.TO_BE_CONFIRMED);
         Integer waitingOrders = orderMapper.countByMap(map);
@@ -100,7 +123,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     @Override
     public DishOverViewVO getDishOverView() {
         Map<String, Object> map = new HashMap<>();
-        map.put("merchantId", MerchantScopeUtils.resolveQueryMerchantId(null));
+        map.put("merchantId", merchantScopeGuard.resolveAdminQueryMerchantId(null));
         map.put("status", StatusConstant.ENABLE);
         Integer sold = dishMapper.countByMap(map);
 
@@ -116,7 +139,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     @Override
     public SetmealOverViewVO getSetmealOverView() {
         Map<String, Object> map = new HashMap<>();
-        map.put("merchantId", MerchantScopeUtils.resolveQueryMerchantId(null));
+        map.put("merchantId", merchantScopeGuard.resolveAdminQueryMerchantId(null));
         map.put("status", StatusConstant.ENABLE);
         Integer sold = setmealMapper.countByMap(map);
 

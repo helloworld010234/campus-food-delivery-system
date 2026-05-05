@@ -4,9 +4,9 @@ import com.sky.dto.GoodsSalesDTO;
 import com.sky.entity.Orders;
 import com.sky.mapper.OrdersMapper;
 import com.sky.mapper.UserMapper;
+import com.sky.security.MerchantScopeGuard;
 import com.sky.service.ReportService;
 import com.sky.service.WorkspaceService;
-import com.sky.utils.MerchantScopeUtils;
 import com.sky.vo.BusinessDataVO;
 import com.sky.vo.OrderReportVO;
 import com.sky.vo.SalesTop10ReportVO;
@@ -32,6 +32,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Admin reporting service.
+ *
+ * <h2>Platform vs merchant semantics</h2>
+ * Every query in this service routes its scope through
+ * {@link MerchantScopeGuard#resolveAdminQueryMerchantId(Long)}:
+ * <ul>
+ *   <li>Platform admin (no merchant context, or explicit id passed by
+ *       request): the guard returns the id as supplied. {@code null} means
+ *       global aggregate across all merchants.</li>
+ *   <li>Merchant admin / merchant staff: the guard substitutes the bound
+ *       merchant id when the caller did not pass one and rejects any explicit
+ *       id that does not match the bound merchant. Merchant accounts can
+ *       therefore never observe global metrics.</li>
+ * </ul>
+ *
+ * The export endpoint reuses {@link WorkspaceService#getBusinessData} which
+ * applies the same guard, so the export and on-screen reports share an
+ * identical scope. User-count statistics also thread the merchant id so the
+ * platform sees registered users while merchants see distinct paying users
+ * for their store.
+ */
 @Service
 public class ReportServiceImpl implements ReportService {
 
@@ -43,6 +65,9 @@ public class ReportServiceImpl implements ReportService {
 
     @Autowired
     private WorkspaceService workspaceService;
+
+    @Autowired
+    private MerchantScopeGuard merchantScopeGuard;
 
     @Override
     public TurnoverReportVO getTurnoverStatistics(LocalDate begin, LocalDate end) {
@@ -59,7 +84,7 @@ public class ReportServiceImpl implements ReportService {
             map.put("begin", LocalDateTime.of(date, LocalTime.MIN));
             map.put("end", LocalDateTime.of(date, LocalTime.MAX));
             map.put("status", Orders.COMPLETED);
-            map.put("merchantId", MerchantScopeUtils.resolveQueryMerchantId(null));
+            map.put("merchantId", merchantScopeGuard.resolveAdminQueryMerchantId(null));
             Double sum = ordersMapper.sumByMap(map);
             turnoverList.add(sum == null ? 0.0 : sum);
         }
@@ -79,11 +104,17 @@ public class ReportServiceImpl implements ReportService {
             dateList.add(begin);
         }
 
+        // Resolve merchant scope once: platform sees global registrations
+        // (merchantId == null) while merchant accounts get their bound id and
+        // therefore see merchant-specific paying users via UserMapper.xml.
+        Long merchantId = merchantScopeGuard.resolveAdminQueryMerchantId(null);
+
         List<Integer> totalUserList = new ArrayList<>();
         List<Integer> newUserList = new ArrayList<>();
         for (LocalDate date : dateList) {
             Map<String, Object> map = new HashMap<>();
             map.put("end", LocalDateTime.of(date, LocalTime.MAX));
+            map.put("merchantId", merchantId);
             Integer totalUser = userMapper.getUserByMap(map);
 
             map.put("begin", LocalDateTime.of(date, LocalTime.MIN));
@@ -116,7 +147,7 @@ public class ReportServiceImpl implements ReportService {
             Map<String, Object> map = new HashMap<>();
             map.put("begin", LocalDateTime.of(date, LocalTime.MIN));
             map.put("end", LocalDateTime.of(date, LocalTime.MAX));
-            map.put("merchantId", MerchantScopeUtils.resolveQueryMerchantId(null));
+            map.put("merchantId", merchantScopeGuard.resolveAdminQueryMerchantId(null));
             Integer orderCount = ordersMapper.countByMap(map);
             map.put("status", Orders.COMPLETED);
             Integer validOrderCount = ordersMapper.countByMap(map);
@@ -143,7 +174,7 @@ public class ReportServiceImpl implements ReportService {
     public SalesTop10ReportVO getSalesTop10(LocalDate begin, LocalDate end) {
         LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
         LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
-        Long merchantId = MerchantScopeUtils.resolveQueryMerchantId(null);
+        Long merchantId = merchantScopeGuard.resolveAdminQueryMerchantId(null);
         List<GoodsSalesDTO> salesTop10 = ordersMapper.getSalesTop10(beginTime, endTime, merchantId);
 
         List<String> names = salesTop10.stream().map(GoodsSalesDTO::getName).collect(Collectors.toList());
