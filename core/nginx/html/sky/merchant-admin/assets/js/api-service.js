@@ -1,7 +1,7 @@
 // API service for the merchant admin console.
 // This file wraps the phase-1 multi-merchant backend endpoints.
 
-const DEFAULT_BACKEND_ORIGIN = 'http://localhost:8080';
+const DEFAULT_BACKEND_ORIGIN = 'http://localhost:8081';
 
 function getWindowLocation() {
     if (typeof window === 'undefined' || !window.location) {
@@ -10,12 +10,8 @@ function getWindowLocation() {
     return window.location;
 }
 
-function getFrontendOrigin() {
-    const location = getWindowLocation();
-    if (!location || !/^https?:$/i.test(location.protocol)) {
-        return DEFAULT_BACKEND_ORIGIN;
-    }
-    return location.origin || DEFAULT_BACKEND_ORIGIN;
+function getBackendOrigin() {
+    return DEFAULT_BACKEND_ORIGIN;
 }
 
 function shouldUseAdminProxy() {
@@ -40,14 +36,14 @@ function rewriteAdminPath(path) {
 }
 
 function resolveRequestUrl(path) {
-    return `${getFrontendOrigin()}${rewriteAdminPath(path)}`;
+    return `${getBackendOrigin()}${rewriteAdminPath(path)}`;
 }
 
 function resolveAssetUrl(path) {
     if (!path) return path;
     if (/^(https?:)?\/\//i.test(path) || path.startsWith('data:')) return path;
     if (path.startsWith('./') || path.startsWith('../')) return path;
-    return `${getFrontendOrigin()}${rewriteAdminPath(path)}`;
+    return `${getBackendOrigin()}${rewriteAdminPath(path)}`;
 }
 
 function parseFileName(contentDisposition, fallbackFileName) {
@@ -67,7 +63,7 @@ function parseFileName(contentDisposition, fallbackFileName) {
 }
 
 const API_CONFIG = {
-    baseURL: getFrontendOrigin(),
+    baseURL: getBackendOrigin(),
     timeout: 10000,
     tokenKey: 'token',
     useAdminProxy: shouldUseAdminProxy(),
@@ -399,6 +395,24 @@ const MerchantAPI = {
     }
 };
 
+const PlatformAPI = {
+    getMerchantPage(params) {
+        return http.get('/admin/merchant/page', params);
+    },
+    getById(id) {
+        return http.get(`/admin/merchant/${id}`);
+    },
+    update(data) {
+        return http.put('/admin/merchant', data);
+    },
+    updateStatus(status, id) {
+        return http.post(`/admin/merchant/status/${status}`, undefined, { id });
+    },
+    updateBusinessStatus(status, id) {
+        return http.post(`/admin/merchant/business-status/${status}`, undefined, { id });
+    }
+};
+
 const CommonAPI = {
     async upload(file) {
         const formData = new FormData();
@@ -430,6 +444,7 @@ const API = {
     Report: ReportAPI,
     Shop: ShopAPI,
     Merchant: MerchantAPI,
+    Platform: PlatformAPI,
     Common: CommonAPI,
     Token: TokenManager,
     config: API_CONFIG
