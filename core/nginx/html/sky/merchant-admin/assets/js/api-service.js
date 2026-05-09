@@ -111,10 +111,16 @@ class HttpClient {
     }
 
     toQueryString(params = {}) {
-        return Object.entries(params)
-            .filter(([, value]) => value !== undefined && value !== null && value !== '')
-            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-            .join('&');
+        const pairs = [];
+        Object.entries(params).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '') return;
+            if (Array.isArray(value)) {
+                value.forEach((v) => pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(v)}`));
+            } else {
+                pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+            }
+        });
+        return pairs.join('&');
     }
 
     async request(path, options = {}) {
@@ -244,7 +250,7 @@ const DishAPI = {
         return http.put('/admin/dish', data);
     },
     deleteDish(ids) {
-        return http.delete('/admin/dish', { ids: ids.join(',') });
+        return http.delete('/admin/dish', { ids });
     },
     getDishById(id) {
         return http.get(`/admin/dish/${id}`);
@@ -289,7 +295,7 @@ const SetmealAPI = {
         return http.put('/admin/setmeal', data);
     },
     deleteSetmeal(ids) {
-        return http.delete('/admin/setmeal', { ids: ids.join(',') });
+        return http.delete('/admin/setmeal', { ids });
     },
     getSetmealById(id) {
         return http.get(`/admin/setmeal/${id}`);

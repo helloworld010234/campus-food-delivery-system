@@ -42,6 +42,7 @@ let dishCategoryOptions = [];
 let setmealCategoryOptions = [];
 let merchantProfile = null;
 let campusServiceStatus = 1;
+let isSubmitting = false;
 
 const viewSyncedAt = {
     context: 0,
@@ -102,6 +103,27 @@ function resetSyncState() {
 function shouldSync(view, force = false) {
     if (force) return true;
     return Date.now() - (viewSyncedAt[view] || 0) > VIEW_SYNC_TTL;
+}
+
+function setSubmitting(value) {
+    isSubmitting = value;
+    const buttons = document.querySelectorAll('[data-submit-btn]');
+    buttons.forEach((btn) => {
+        btn.disabled = value;
+    });
+}
+
+async function withSubmitting(actionFn, errorMessagePrefix = '操作失败') {
+    if (isSubmitting) return;
+    setSubmitting(true);
+    try {
+        return await actionFn();
+    } catch (error) {
+        alert(`${errorMessagePrefix}：${error.message || error}`);
+        throw error;
+    } finally {
+        setSubmitting(false);
+    }
 }
 
 function markSynced(view) {
@@ -317,9 +339,7 @@ async function syncProductsData(force = false) {
         price: toNumber(item.price),
         image: normalizeImageUrl(item.image),
         description: item.description || '暂无商品描述',
-        status: toNumber(item.status, 0),
-        sales: 0,
-        stock: '--'
+        status: toNumber(item.status, 0)
     }));
 
     products.splice(0, products.length, ...mapped);
@@ -465,12 +485,10 @@ async function syncSetMealsData(force = false) {
             categoryId: toNumber(item.categoryId, 0),
             categoryName: item.categoryName || categoryNameById.get(toNumber(item.categoryId)) || '套餐分类',
             price: toNumber(item.price),
-            originalPrice: toNumber(item.price),
             image: normalizeImageUrl(item.image),
             description: item.description || '暂无套餐描述',
             status: toNumber(item.status, 0),
-            products: dishes,
-            sales: 0
+            products: dishes
         };
     });
 
@@ -512,7 +530,7 @@ function rebuildCategoryStatisticsFromProducts() {
     const labels = [...counter.keys()];
     const total = [...counter.values()].reduce((sum, value) => sum + value, 0) || 1;
     const values = [...counter.values()].map((value) => Number(((value / total) * 100).toFixed(1)));
-    const colors = ['#ff7a21', '#ffb347', '#11a75c', '#3b82f6', '#8b5cf6', '#14b8a6', '#0ea5e9', '#f43f5e'];
+    const colors = ['#2a7d58', '#1d5f43', '#11a75c', '#3b82f6', '#8b5cf6', '#14b8a6', '#0ea5e9', '#f43f5e'];
 
     statistics.categoryData.labels = labels;
     statistics.categoryData.values = values;
@@ -567,6 +585,19 @@ async function syncDashboardAndStatisticsData(force = false) {
     statistics.weekData.labels = labels;
     statistics.weekData.revenue = revenueList;
     statistics.weekData.orders = orderList;
+
+    // 从已加载订单中统计小时级分布
+    const hourCounts = new Array(24).fill(0);
+    (orders || []).forEach((order) => {
+        const dt = new Date(order.orderTime);
+        if (!Number.isNaN(dt.getTime())) {
+            hourCounts[dt.getHours()] += 1;
+        }
+    });
+    statistics.hourlyOrders = {
+        labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+        values: hourCounts
+    };
 
     const topNames = parseCSVStrings(top10Report?.nameList);
     const topNumbers = parseCSVNumbers(top10Report?.numberList, topNames.length);
@@ -695,7 +726,7 @@ function renderPageHeader(title, description, actions = '') {
 
 function renderEmptyState(title, description) {
     return `<div class="bg-white rounded-lg p-12 text-center">
-        <div class="mx-auto mb-4 w-14 h-14 rounded-full flex items-center justify-center" style="background: rgba(255,122,33,0.12); color: var(--primary-orange);">${icons.merchant}</div>
+        <div class="mx-auto mb-4 w-14 h-14 rounded-full flex items-center justify-center" style="background: rgba(42,125,88,0.12); color: var(--primary-green);">${icons.merchant}</div>
         <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">${escapeHtml(title)}</h3>
         <p class="text-sm" style="color: var(--text-secondary);">${escapeHtml(description)}</p>
     </div>`;
@@ -753,7 +784,7 @@ function renderTopBar() {
                 ${pendingCount > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center">${pendingCount}</span>` : ''}
             </button>
             <button class="flex items-center gap-3 px-3 py-2 rounded-xl border" style="background: rgba(255,255,255,0.8); border-color: rgba(196,208,226,0.64);" onclick="logout()">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, var(--primary-orange), var(--secondary-orange));">${escapeHtml((currentUser?.name || '商').slice(0, 1))}</div>
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));">${escapeHtml((currentUser?.name || '商').slice(0, 1))}</div>
                 <div class="text-left">
                     <p class="text-sm font-semibold" style="color: var(--text-primary);">${escapeHtml(currentUser?.name || '商家账号')}</p>
                     <p class="text-xs" style="color: var(--text-secondary);">退出登录</p>
@@ -782,23 +813,23 @@ function renderDashboard() {
         ${renderStatusBanner()}
         ${renderPageHeader('商家工作台', '围绕当前商户的订单、商品与经营数据统一运营。')}
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
-            ${renderMetricCard('今日订单', String(statistics.today.orders || 0), statistics.trend.ordersChange || '今日概览', icons.orders, 'background: linear-gradient(135deg, #ff7a21, #ffb347);')}
+            ${renderMetricCard('今日订单', String(statistics.today.orders || 0), statistics.trend.ordersChange || '今日概览', icons.orders, 'background: linear-gradient(135deg, #2a7d58, #1d5f43);')}
             ${renderMetricCard('今日营业额', formatCurrency(statistics.today.revenue || 0), statistics.trend.revenueChange || '营收变化', `<svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`, 'background: linear-gradient(135deg, #11a75c, #48c78e);')}
             ${renderMetricCard('待接单', String(statistics.today.pendingOrders || 0), statistics.trend.pendingChange || '待处理提醒', icons.clock, 'background: linear-gradient(135deg, #f59e0b, #fbbf24);')}
-            ${renderMetricCard('在售商品数', String(statistics.today.totalProducts || 0), statistics.trend.productsChange || '菜单规模', icons.products, 'background: linear-gradient(135deg, #3b82f6, #60a5fa);')}
+            ${renderMetricCard('在售商品数', String(statistics.today.totalProducts || 0), statistics.trend.productsChange || '菜单规模', icons.products, 'background: linear-gradient(135deg, #0ea5a5, #14b8a6);')}
         </div>
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
             <div class="xl:col-span-2 bg-white rounded-lg p-6 card-hover">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold" style="color: var(--text-primary);">近 7 日经营趋势</h3>
-                    <button class="text-sm font-medium" style="color: var(--primary-orange);" onclick="navigateTo('statistics')">查看数据中心</button>
+                    <button class="text-sm font-medium" style="color: var(--primary-green);" onclick="navigateTo('statistics')">查看数据中心</button>
                 </div>
                 <div style="height: 300px;"><canvas id="revenueChart"></canvas></div>
             </div>
             <div class="bg-white rounded-lg p-6 card-hover">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold" style="color: var(--text-primary);">商家状态摘要</h3>
-                    <button class="text-sm font-medium" style="color: var(--primary-orange);" onclick="navigateTo('merchantProfile')">查看详情</button>
+                    <button class="text-sm font-medium" style="color: var(--primary-green);" onclick="navigateTo('merchantProfile')">查看详情</button>
                 </div>
                 <div class="space-y-4">
                     <div class="p-4 rounded-xl border" style="border-color: rgba(196,208,226,0.64);">
@@ -836,7 +867,7 @@ function renderDashboard() {
             <div class="xl:col-span-2 bg-white rounded-lg p-6 card-hover">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold" style="color: var(--text-primary);">最新订单</h3>
-                    <button class="text-sm font-medium" style="color: var(--primary-orange);" onclick="navigateTo('orders')">前往订单管理</button>
+                    <button class="text-sm font-medium" style="color: var(--primary-green);" onclick="navigateTo('orders')">前往订单管理</button>
                 </div>
                 <div class="space-y-3">
                     ${latestOrders.length === 0 ? renderEmptyState('暂无订单数据', '当前商家还没有产生订单。') : latestOrders.map((order) => {
@@ -848,7 +879,7 @@ function renderDashboard() {
                                     <p class="text-sm" style="color: var(--text-secondary);">${escapeHtml(order.customer)} · ${escapeHtml(formatRelativeTime(order.orderTime))}</p>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <span class="font-semibold" style="color: var(--primary-orange);">${formatCurrency(order.totalAmount)}</span>
+                                    <span class="font-semibold" style="color: var(--primary-green);">${formatCurrency(order.totalAmount)}</span>
                                     ${renderBadge(statusMeta.text, statusMeta.className)}
                                 </div>
                             </div>
@@ -859,7 +890,7 @@ function renderDashboard() {
             <div class="bg-white rounded-lg p-6 card-hover">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold" style="color: var(--text-primary);">待处理提醒</h3>
-                    <button class="text-sm font-medium" style="color: var(--primary-orange);" onclick="openPendingOrders()">立即处理</button>
+                    <button class="text-sm font-medium" style="color: var(--primary-green);" onclick="openPendingOrders()">立即处理</button>
                 </div>
                 ${pendingOrders.length === 0 ? renderEmptyState('当前无待接单', '新订单来了会在这里高亮提醒。') : `<div class="space-y-3">${pendingOrders.slice(0, 4).map((order) => `<div class="p-4 rounded-xl border" style="border-color: rgba(245,158,11,0.22); background: rgba(245,158,11,0.06);">
                     <div class="flex items-center justify-between gap-3 mb-2">
@@ -867,7 +898,7 @@ function renderDashboard() {
                         <span class="text-sm font-semibold" style="color: var(--warning);">${formatCurrency(order.totalAmount)}</span>
                     </div>
                     <p class="text-sm mb-2" style="color: var(--text-secondary);">${escapeHtml(order.address)}</p>
-                    <button class="text-sm font-medium" style="color: var(--primary-orange);" onclick="openOrderDetail(${order.orderId})">查看订单详情</button>
+                    <button class="text-sm font-medium" style="color: var(--primary-green);" onclick="openOrderDetail(${order.orderId})">查看订单详情</button>
                 </div>`).join('')}</div>`}
             </div>
         </div>
@@ -923,7 +954,7 @@ function renderProductCards(list) {
             </div>
             <p class="text-sm min-h-[44px] mb-4" style="color: var(--text-secondary);">${escapeHtml(product.description)}</p>
             <div class="flex items-center justify-between mb-4">
-                <span class="text-2xl font-bold" style="color: var(--primary-orange);">${formatCurrency(product.price)}</span>
+                <span class="text-2xl font-bold" style="color: var(--primary-green);">${formatCurrency(product.price)}</span>
                 <span class="text-sm" style="color: var(--text-secondary);">归属商家：${escapeHtml(getMerchantDisplayName())}</span>
             </div>
             <div class="flex items-center justify-between">
@@ -932,7 +963,7 @@ function renderProductCards(list) {
                     <span class="slider"></span>
                 </label>
                 <div class="flex items-center gap-2">
-                    <button class="p-2 hover:bg-gray-100 rounded" style="color: var(--primary-orange);" onclick="editProduct(${product.id})">${icons.edit}</button>
+                    <button class="p-2 hover:bg-gray-100 rounded" style="color: var(--primary-green);" onclick="editProduct(${product.id})">${icons.edit}</button>
                     <button class="p-2 hover:bg-gray-100 rounded" style="color: var(--accent-red);" onclick="deleteProduct(${product.id})">${icons.delete}</button>
                 </div>
             </div>
@@ -954,7 +985,7 @@ function renderOrders() {
         ${renderPageHeader('订单管理', '订单列表已自动按当前商家隔离，可直接处理待接单和履约状态。')}
         <div class="bg-white rounded-lg p-4 mb-6">
             <div class="flex flex-wrap items-center gap-4 border-b border-gray-200">
-                ${tabs.map((tab) => `<button onclick="filterOrdersByStatus('${tab.key}')" class="pb-4 px-2 font-medium transition ${currentOrderStatus === tab.key ? 'border-b-2' : ''}" style="${currentOrderStatus === tab.key ? 'border-color: var(--primary-orange); color: var(--primary-orange);' : 'color: var(--text-secondary);'}">${tab.label}<span class="ml-2 px-2 py-1 text-xs rounded-full" style="background: ${currentOrderStatus === tab.key ? 'var(--primary-orange)' : 'rgba(145,164,196,0.18)'}; color: ${currentOrderStatus === tab.key ? '#fff' : 'inherit'};">${tab.count}</span></button>`).join('')}
+                ${tabs.map((tab) => `<button onclick="filterOrdersByStatus('${tab.key}')" class="pb-4 px-2 font-medium transition ${currentOrderStatus === tab.key ? 'border-b-2' : ''}" style="${currentOrderStatus === tab.key ? 'border-color: var(--primary-green); color: var(--primary-green);' : 'color: var(--text-secondary);'}">${tab.label}<span class="ml-2 px-2 py-1 text-xs rounded-full" style="background: ${currentOrderStatus === tab.key ? 'var(--primary-green)' : 'rgba(145,164,196,0.18)'}; color: ${currentOrderStatus === tab.key ? '#fff' : 'inherit'};">${tab.count}</span></button>`).join('')}
             </div>
         </div>
         <div id="ordersList" class="space-y-4">${renderOrderCards(currentOrderStatus)}</div>
@@ -963,7 +994,7 @@ function renderOrders() {
 
 function renderOrderActionButtons(order, compact = false) {
     const classes = compact ? 'px-3 py-2 rounded-lg text-sm' : 'px-4 py-2 rounded-lg';
-    const buttons = [`<button onclick="openOrderDetail(${order.orderId})" class="${classes}" style="background: rgba(59,130,246,0.12); color: #2563eb;">查看详情</button>`];
+    const buttons = [`<button onclick="openOrderDetail(${order.orderId})" class="${classes}" style="background: rgba(42,125,88,0.12); color: #2a7d58;">查看详情</button>`];
 
     if (order.status === 'pending') {
         buttons.unshift(`<button onclick="acceptOrder(${order.orderId})" class="${classes} btn-primary">接单</button>`);
@@ -992,11 +1023,11 @@ function renderOrderCards(status) {
                     <p class="text-sm mt-1" style="color: var(--text-secondary);">${escapeHtml(order.address)}</p>
                     ${order.note ? `<p class="text-sm mt-2" style="color: var(--warning);">备注：${escapeHtml(order.note)}</p>` : ''}
                 </div>
-                <div class="flex items-center gap-3">${renderBadge(statusMeta.text, statusMeta.className)}<span class="font-semibold" style="color: var(--primary-orange);">${formatCurrency(order.totalAmount)}</span></div>
+                <div class="flex items-center gap-3">${renderBadge(statusMeta.text, statusMeta.className)}<span class="font-semibold" style="color: var(--primary-green);">${formatCurrency(order.totalAmount)}</span></div>
             </div>
             <div class="border-t border-b border-gray-100 py-4 mb-4">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                    <div class="p-3 rounded-xl" style="background: rgba(255,122,33,0.08);">
+                    <div class="p-3 rounded-xl" style="background: rgba(42,125,88,0.08);">
                         <p class="text-xs mb-1" style="color: var(--text-secondary);">商品金额</p>
                         <p class="font-semibold" style="color: var(--text-primary);">${formatCurrency(order.goodsAmount)}</p>
                     </div>
@@ -1016,7 +1047,7 @@ function renderOrderCards(status) {
                             <p class="font-medium" style="color: var(--text-primary);">${escapeHtml(item.name)}</p>
                             <p class="text-sm" style="color: var(--text-secondary);">x${escapeHtml(item.quantity)}</p>
                         </div>
-                        <p class="font-medium" style="color: var(--primary-orange);">${formatCurrency(item.price)}</p>
+                        <p class="font-medium" style="color: var(--primary-green);">${formatCurrency(item.price)}</p>
                     </div>`).join('')}
                     ${order.items.length > 3 ? `<p class="text-sm" style="color: var(--text-secondary);">还有 ${order.items.length - 3} 个商品，点击“查看详情”可查看完整明细。</p>` : ''}
                 </div>
@@ -1049,7 +1080,7 @@ function renderSetMeals() {
                     </div>
                     <p class="text-sm min-h-[44px] mb-3" style="color: var(--text-secondary);">${escapeHtml(meal.description)}</p>
                     <div class="flex items-center justify-between mb-3">
-                        <span class="text-2xl font-bold" style="color: var(--primary-orange);">${formatCurrency(meal.price)}</span>
+                        <span class="text-2xl font-bold" style="color: var(--primary-green);">${formatCurrency(meal.price)}</span>
                         <span class="text-sm" style="color: var(--text-secondary);">含 ${(meal.products || []).length} 个菜品</span>
                     </div>
                     <div class="text-sm mb-4" style="color: var(--text-secondary);">${(meal.products || []).map((item) => `${escapeHtml(item.name)} x${escapeHtml(item.quantity)}`).join(' · ') || '暂无配置菜品'}</div>
@@ -1059,7 +1090,7 @@ function renderSetMeals() {
                             <span class="slider"></span>
                         </label>
                         <div class="flex items-center gap-2">
-                            <button class="p-2 hover:bg-gray-100 rounded" style="color: var(--primary-orange);" onclick="editSetmeal(${meal.id})">${icons.edit}</button>
+                            <button class="p-2 hover:bg-gray-100 rounded" style="color: var(--primary-green);" onclick="editSetmeal(${meal.id})">${icons.edit}</button>
                             <button class="p-2 hover:bg-gray-100 rounded" style="color: var(--accent-red);" onclick="deleteSetmeal(${meal.id})">${icons.delete}</button>
                         </div>
                     </div>
@@ -1098,10 +1129,10 @@ function renderStatistics() {
             <div class="xl:col-span-2 bg-white rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">热销商品 Top 10</h3>
                 ${statistics.topProducts.length === 0 ? renderEmptyState('暂无热销数据', '订单沉淀后会展示当前商家的热销商品排行。') : `<div class="space-y-3">${statistics.topProducts.map((item, index) => `<div class="flex items-center gap-4">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold ${index < 3 ? 'text-white' : 'bg-gray-100 text-gray-600'}" style="${index < 3 ? 'background: linear-gradient(135deg, var(--primary-orange), var(--secondary-orange))' : ''}">${index + 1}</div>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold ${index < 3 ? 'text-white' : 'bg-gray-100 text-gray-600'}" style="${index < 3 ? 'background: linear-gradient(135deg, var(--primary-green), var(--secondary-green))' : ''}">${index + 1}</div>
                     <div class="flex-1">
                         <div class="flex items-center justify-between mb-1"><span class="font-medium" style="color: var(--text-primary);">${escapeHtml(item.name)}</span><span class="text-sm" style="color: var(--text-secondary);">${escapeHtml(item.sales)} 份</span></div>
-                        <div class="w-full bg-gray-100 rounded-full h-2"><div class="h-2 rounded-full" style="width: ${item.percentage}%; background: linear-gradient(90deg, var(--primary-orange), var(--secondary-orange))"></div></div>
+                        <div class="w-full bg-gray-100 rounded-full h-2"><div class="h-2 rounded-full" style="width: ${item.percentage}%; background: linear-gradient(90deg, var(--primary-green), var(--secondary-green))"></div></div>
                     </div>
                 </div>`).join('')}</div>`}
             </div>
@@ -1148,7 +1179,7 @@ function renderEmployees() {
                     ${employees.length === 0 ? `<tr><td colspan="7" class="px-6 py-10 text-center text-sm" style="color: var(--text-secondary);">当前商家还没有员工账号。</td></tr>` : employees.map((employee) => `<tr class="hover:bg-gray-50">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--primary-orange), var(--secondary-orange));">${escapeHtml(employee.name.slice(0, 1))}</div>
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));">${escapeHtml(employee.name.slice(0, 1))}</div>
                                 <span class="font-medium" style="color: var(--text-primary);">${escapeHtml(employee.name)}</span>
                             </div>
                         </td>
@@ -1159,7 +1190,7 @@ function renderEmployees() {
                         <td class="px-6 py-4 text-gray-600">${escapeHtml(employee.createTime)}</td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
-                                <button class="p-2 hover:bg-gray-100 rounded" style="color: var(--primary-orange);" onclick="editEmployee(${employee.id})">${icons.edit}</button>
+                                <button class="p-2 hover:bg-gray-100 rounded" style="color: var(--primary-green);" onclick="editEmployee(${employee.id})">${icons.edit}</button>
                                 <button class="p-2 hover:bg-gray-100 rounded" style="color: ${employee.status === 1 ? 'var(--warning)' : 'var(--accent-green)'};" onclick="toggleEmployeeStatus(${employee.id})">${employee.status === 1 ? icons.clock : icons.plus}</button>
                             </div>
                         </td>
@@ -1188,9 +1219,9 @@ function renderMerchantProfile() {
         ${renderStatusBanner()}
         ${renderPageHeader('商家信息', '当前页用于展示商家身份、营业状态和校园统一规则。基础资料由平台统一维护。', actionButton)}
         <div class="bg-white rounded-lg overflow-hidden mb-6">
-            <div class="p-8" style="background: linear-gradient(135deg, rgba(255,122,33,0.16), rgba(59,130,246,0.12));">
+            <div class="p-8" style="background: linear-gradient(135deg, rgba(42,125,88,0.16), rgba(59,130,246,0.12));">
                 <div class="flex flex-col gap-6 xl:flex-row xl:items-center">
-                    <div class="w-28 h-28 rounded-3xl overflow-hidden flex items-center justify-center text-white text-3xl font-bold" style="background: linear-gradient(135deg, var(--primary-orange), var(--secondary-orange));">
+                    <div class="w-28 h-28 rounded-3xl overflow-hidden flex items-center justify-center text-white text-3xl font-bold" style="background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));">
                         ${cover ? `<img src="${escapeHtml(normalizeImageUrl(cover))}" alt="${escapeHtml(merchantProfile.name)}" class="w-full h-full object-cover" />` : getMerchantInitial()}
                     </div>
                     <div class="flex-1">
@@ -1323,7 +1354,7 @@ function renderOrderDetailDrawer() {
                                 <p class="text-sm mt-1" style="color: var(--text-secondary);">数量 x${escapeHtml(item.quantity)}</p>
                             </div>
                             <div class="text-right">
-                                <p class="font-semibold" style="color: var(--primary-orange);">${formatCurrency(item.price)}</p>
+                                <p class="font-semibold" style="color: var(--primary-green);">${formatCurrency(item.price)}</p>
                             </div>
                         </div>`).join('')}
                     </div>
@@ -1384,7 +1415,7 @@ function renderLoginPage() {
                             <input type="checkbox" class="mr-2" checked />
                             <span class="text-sm text-gray-600">记住本次登录</span>
                         </label>
-                        <span class="text-sm" style="color: var(--primary-orange);">平台管理员请使用平台端</span>
+                        <span class="text-sm" style="color: var(--primary-green);">平台管理员请使用平台端</span>
                     </div>
                     <button type="submit" class="w-full btn-primary py-3 rounded-lg text-white font-semibold text-lg">登录商家后台</button>
                 </form>
@@ -1547,6 +1578,7 @@ function closeOrderDetail() {
 }
 
 async function openAddProductDialog() {
+    if (isSubmitting) return;
     await syncCategoriesData(true);
     if (!dishCategoryOptions.length) {
         alert('请先在后端创建菜品分类');
@@ -1576,6 +1608,7 @@ async function openAddProductDialog() {
     const image = prompt('请输入商品图片 URL（可选）', '') || '';
 
     try {
+        setSubmitting(true);
         await API.Dish.addDish({
             name: name.trim(),
             categoryId,
@@ -1590,10 +1623,13 @@ async function openAddProductDialog() {
         alert('新增商品成功');
     } catch (error) {
         alert(`新增商品失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function editProduct(id) {
+    if (isSubmitting) return;
     await syncCategoriesData(false);
 
     try {
@@ -1620,6 +1656,7 @@ async function editProduct(id) {
         const description = prompt('请输入商品描述', detail.description || '') || '';
         const image = prompt('请输入商品图片 URL', detail.image || '') || '';
 
+        setSubmitting(true);
         await API.Dish.updateDish({
             id,
             name: name.trim(),
@@ -1635,35 +1672,46 @@ async function editProduct(id) {
         alert('商品更新成功');
     } catch (error) {
         alert(`更新商品失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function toggleProductStatus(id) {
+    if (isSubmitting) return;
     const target = products.find((item) => item.id === id);
     if (!target) return;
 
     try {
+        setSubmitting(true);
         await API.Dish.updateStatus(target.status === 1 ? 0 : 1, id);
         await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
     } catch (error) {
         alert(`切换商品状态失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function deleteProduct(id) {
+    if (isSubmitting) return;
     if (!confirm('确认删除这个商品吗？')) return;
 
     try {
+        setSubmitting(true);
         await API.Dish.deleteDish([id]);
         await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
     } catch (error) {
         alert(`删除商品失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function openAddSetmealDialog() {
+    if (isSubmitting) return;
     await Promise.all([syncCategoriesData(true), syncProductsData(true)]);
 
     if (!setmealCategoryOptions.length) {
@@ -1706,6 +1754,7 @@ async function openAddSetmealDialog() {
     const image = prompt('请输入套餐图片 URL（可选）', '') || '';
 
     try {
+        setSubmitting(true);
         await API.Setmeal.addSetmeal({
             name: name.trim(),
             categoryId,
@@ -1720,10 +1769,13 @@ async function openAddSetmealDialog() {
         alert('新增套餐成功');
     } catch (error) {
         alert(`新增套餐失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function editSetmeal(id) {
+    if (isSubmitting) return;
     await Promise.all([syncCategoriesData(false), syncProductsData(false)]);
 
     try {
@@ -1762,6 +1814,7 @@ async function editSetmeal(id) {
         const description = prompt('请输入套餐描述', detail.description || '') || '';
         const image = prompt('请输入套餐图片 URL', detail.image || '') || '';
 
+        setSubmitting(true);
         await API.Setmeal.updateSetmeal({
             id,
             name: name.trim(),
@@ -1777,35 +1830,46 @@ async function editSetmeal(id) {
         alert('套餐更新成功');
     } catch (error) {
         alert(`更新套餐失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function toggleSetmealStatus(id) {
+    if (isSubmitting) return;
     const target = setMeals.find((item) => item.id === id);
     if (!target) return;
 
     try {
+        setSubmitting(true);
         await API.Setmeal.updateStatus(target.status === 1 ? 0 : 1, id);
         await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
     } catch (error) {
         alert(`切换套餐状态失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function deleteSetmeal(id) {
+    if (isSubmitting) return;
     if (!confirm('确认删除这个套餐吗？')) return;
 
     try {
+        setSubmitting(true);
         await API.Setmeal.deleteSetmeal([id]);
         await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
     } catch (error) {
         alert(`删除套餐失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function openAddEmployeeDialog() {
+    if (isSubmitting) return;
     if (!canManageEmployees()) {
         alert('当前账号没有员工管理权限');
         return;
@@ -1836,6 +1900,7 @@ async function openAddEmployeeDialog() {
     }
 
     try {
+        setSubmitting(true);
         await API.Employee.addEmployee({
             name: name.trim(),
             username: username.trim(),
@@ -1850,10 +1915,13 @@ async function openAddEmployeeDialog() {
         alert('新增员工成功，默认密码为 123456');
     } catch (error) {
         alert(`新增员工失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function editEmployee(id) {
+    if (isSubmitting) return;
     if (!canManageEmployees()) {
         alert('当前账号没有员工管理权限');
         return;
@@ -1885,6 +1953,7 @@ async function editEmployee(id) {
             return;
         }
 
+        setSubmitting(true);
         await API.Employee.updateEmployee({
             id,
             name: name.trim(),
@@ -1900,24 +1969,31 @@ async function editEmployee(id) {
         alert('员工信息已更新');
     } catch (error) {
         alert(`更新员工失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function toggleEmployeeStatus(id) {
+    if (isSubmitting) return;
     if (!canManageEmployees()) return;
     const target = employees.find((item) => item.id === id);
     if (!target) return;
 
     try {
+        setSubmitting(true);
         await API.Employee.updateStatus(target.status === 1 ? 0 : 1, id);
         await syncEmployeesData(true);
         renderApp();
     } catch (error) {
         alert(`切换员工状态失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function toggleBusinessStatus() {
+    if (isSubmitting) return;
     if (!isMerchantAdmin()) {
         alert('当前账号不能切换商家营业状态');
         return;
@@ -1932,16 +2008,21 @@ async function toggleBusinessStatus() {
     if (!confirm(confirmText)) return;
 
     try {
+        setSubmitting(true);
         await API.Merchant.updateBusinessStatus(nextStatus, merchantProfile.id);
         await syncMerchantContext(true);
         renderApp();
     } catch (error) {
         alert(`切换营业状态失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function acceptOrder(id) {
+    if (isSubmitting) return;
     try {
+        setSubmitting(true);
         await API.Order.confirm(id);
         await Promise.all([syncOrdersData(true), syncDashboardAndStatisticsData(true)]);
         if (selectedOrderId === id) {
@@ -1950,11 +2031,15 @@ async function acceptOrder(id) {
         renderApp();
     } catch (error) {
         alert(`接单失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 
 async function updateOrderStatus(id, nextStatus) {
+    if (isSubmitting) return;
     try {
+        setSubmitting(true);
         if (nextStatus === 'delivering') {
             await API.Order.delivery(id);
         } else if (nextStatus === 'completed') {
@@ -1967,6 +2052,8 @@ async function updateOrderStatus(id, nextStatus) {
         renderApp();
     } catch (error) {
         alert(`更新订单状态失败：${error.message || error}`);
+    } finally {
+        setSubmitting(false);
     }
 }
 

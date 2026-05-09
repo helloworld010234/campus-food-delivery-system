@@ -359,7 +359,7 @@ const statistics = {
     categoryData: {
         labels: ['热菜', '凉菜', '主食', '汤类'],
         values: [45, 15, 30, 10],
-        colors: ['#FF6B35', '#FFA500', '#52C41A', '#13C2C2']
+        colors: ['#2a7d58', '#1d5f43', '#11a75c', '#14b8a6']
     },
     // 热销商品 Top 10
     topProducts: [

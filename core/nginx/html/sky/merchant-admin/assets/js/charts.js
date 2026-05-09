@@ -7,8 +7,8 @@ let hourlyChart = null;
 
 const CHART_FONT = "'Manrope', 'Noto Sans SC', 'PingFang SC', sans-serif";
 const CHART_THEME = {
-    primary: '#ff7a21',
-    secondary: '#ffb347',
+    primary: '#2a7d58',
+    secondary: '#1d5f43',
     success: '#11a75c',
     info: '#3b82f6',
     violet: '#8b5cf6',
@@ -39,7 +39,7 @@ function createRevenueChart(canvasId, data) {
                 label: '销售额 (元)',
                 data: data.revenue,
                 borderColor: CHART_THEME.primary,
-                backgroundColor: 'rgba(255, 122, 33, 0.16)',
+                backgroundColor: 'rgba(42, 125, 88, 0.16)',
                 tension: 0.4,
                 fill: true,
                 pointRadius: 4,
@@ -416,7 +416,7 @@ function createDualAxisChart(canvasId, data) {
                     data: data.revenue,
                     type: 'line',
                     borderColor: CHART_THEME.primary,
-                    backgroundColor: 'rgba(255, 122, 33, 0.16)',
+                    backgroundColor: 'rgba(42, 125, 88, 0.16)',
                     tension: 0.4,
                     fill: true,
                     yAxisID: 'y1',
