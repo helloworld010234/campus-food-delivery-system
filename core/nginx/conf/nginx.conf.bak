@@ -62,17 +62,9 @@ http {
         }
 
         location / {
-            root   html/sky/merchant-admin;
+            root   html/sky;
             index  index.html index.htm;
             try_files $uri $uri/ /index.html;
-        }
-
-        # 旧版归档目录 — 不对外暴露
-        location /legacy/ {
-            root   html/sky;
-            try_files $uri $uri/ =404;
-            allow 127.0.0.1;
-            deny all;
         }
 
         error_page   500 502 503 504  /50x.html;
