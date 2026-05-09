@@ -1,5 +1,6 @@
 package com.sky.security;
 
+import com.sky.constant.AccountTypeConstant;
 import com.sky.context.BaseContext;
 import com.sky.exception.BaseException;
 import com.sky.support.MultiMerchantSchemaSupport;
@@ -140,6 +141,17 @@ public class MerchantScopeGuard {
             return BaseContext.getCurrentMerchantId();
         }
         return requireCurrentMerchant(operation);
+    }
+
+    /**
+     * Assert the current account is a merchant admin (not staff).
+     * Used for operations that require full merchant management privileges.
+     */
+    public void assertMerchantAdmin(String operation) {
+        if (MerchantScopeUtils.isMerchantAccount()
+                && !AccountTypeConstant.MERCHANT_ADMIN.equals(BaseContext.getCurrentAccountType())) {
+            throw new BaseException("该操作需要商家管理员权限: " + operation);
+        }
     }
 
     private Long requireCurrentMerchant(String operation) {

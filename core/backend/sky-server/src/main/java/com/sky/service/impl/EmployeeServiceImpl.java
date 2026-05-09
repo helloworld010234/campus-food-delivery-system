@@ -56,6 +56,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public void save(EmployeeDTO employeeDTO) {
+        // MERCHANT_STAFF cannot manage employees
+        if (schemaSupport.supportsEmployeeScope()
+                && AccountTypeConstant.MERCHANT_STAFF.equals(BaseContext.getCurrentAccountType())) {
+            throw new BaseException("员工账号无权管理员工");
+        }
+
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
 
@@ -122,6 +128,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public void updateEmployeeData(EmployeeDTO employeeDTO) {
+        // MERCHANT_STAFF cannot manage employees
+        if (schemaSupport.supportsEmployeeScope()
+                && AccountTypeConstant.MERCHANT_STAFF.equals(BaseContext.getCurrentAccountType())) {
+            throw new BaseException("员工账号无权管理员工");
+        }
+
         Employee existing = getAccessibleEmployee(employeeDTO.getId());
         Employee toUpdate = new Employee();
         BeanUtils.copyProperties(employeeDTO, toUpdate);

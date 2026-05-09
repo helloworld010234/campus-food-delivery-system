@@ -19,7 +19,8 @@ function shouldUseAdminProxy() {
     if (!location || !/^https?:$/i.test(location.protocol)) {
         return false;
     }
-    return location.port !== '8080';
+    // Only rewrite /admin/ -> /api/ when served through Nginx (port 8081)
+    return location.port === '8081';
 }
 
 function normalizePath(path) {
@@ -401,6 +402,9 @@ const PlatformAPI = {
     },
     getById(id) {
         return http.get(`/admin/merchant/${id}`);
+    },
+    createMerchant(data) {
+        return http.post('/admin/merchant', data);
     },
     update(data) {
         return http.put('/admin/merchant', data);

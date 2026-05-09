@@ -12,6 +12,27 @@ const ACCOUNT_TYPES = {
 
 const VIEW_SYNC_TTL = 15 * 1000;
 
+const Toast = {
+    container: null,
+    init() {
+        if (this.container) return;
+        this.container = document.createElement('div');
+        this.container.className = 'toast-container';
+        document.body.appendChild(this.container);
+    },
+    show(message, type = 'info', duration = 3000) {
+        this.init();
+        const el = document.createElement('div');
+        el.className = `toast toast-${type}`;
+        el.textContent = message;
+        this.container.appendChild(el);
+        setTimeout(() => {
+            el.style.animation = 'toastSlideOut 0.3s ease forwards';
+            setTimeout(() => el.remove(), 300);
+        }, duration);
+    }
+};
+
 const VIEW_TITLES = {
     dashboard: '商家工作台',
     products: '商品管理',
@@ -128,7 +149,7 @@ async function withSubmitting(actionFn, errorMessagePrefix = '操作失败') {
     try {
         return await actionFn();
     } catch (error) {
-        alert(`${errorMessagePrefix}：${error.message || error}`);
+        Toast.show(`${errorMessagePrefix}：${error.message || error}`, 'error');
         throw error;
     } finally {
         setSubmitting(false);
@@ -252,7 +273,15 @@ function isMerchantAdmin() {
     return toNumber(currentUser?.accountType) === ACCOUNT_TYPES.MERCHANT_ADMIN;
 }
 
+function isMerchantStaff() {
+    return toNumber(currentUser?.accountType) === ACCOUNT_TYPES.MERCHANT_STAFF;
+}
+
 function canManageEmployees() {
+    return isMerchantAdmin();
+}
+
+function canAccessStatistics() {
     return isMerchantAdmin();
 }
 
@@ -720,7 +749,7 @@ function notifySyncError(error) {
 
     if (Date.now() - lastSyncErrorAt > 5000) {
         lastSyncErrorAt = Date.now();
-        alert(`数据同步失败，将展示上次加载结果：${error.message || error}`);
+        Toast.show(`数据同步失败，将展示上次加载结果：${error.message || error}`, 'error');
     }
 }
 
@@ -799,11 +828,12 @@ function renderSidebar() {
             { id: 'products', label: '商品管理', icon: 'products' },
             { id: 'orders', label: '订单管理', icon: 'orders' },
             { id: 'setmeals', label: '套餐管理', icon: 'setmeals' },
-            { id: 'statistics', label: '数据中心', icon: 'statistics' },
             { id: 'merchantProfile', label: '商家信息', icon: 'merchant' }
         ];
-        if (canManageEmployees()) {
-            items.splice(5, 0, { id: 'employees', label: '员工管理', icon: 'employees' });
+        // MERCHANT_ADMIN only: employees + statistics
+        if (!isMerchantStaff()) {
+            items.splice(4, 0, { id: 'employees', label: '员工管理', icon: 'employees' });
+            items.splice(5, 0, { id: 'statistics', label: '数据中心', icon: 'statistics' });
         }
     }
 
@@ -1040,8 +1070,9 @@ function renderPlatformDashboard() {
 }
 
 function renderPlatformMerchants() {
+    const actions = `<button onclick="openAddMerchantDialog()" class="btn-primary px-4 py-2 rounded-lg text-sm flex items-center gap-2">${icons.plus}<span>新增商家</span></button>`;
     return `<div class="content-area fade-in">
-        ${renderPageHeader('商家管理', '管理平台所有入驻商家的状态与营业情况。')}
+        ${renderPageHeader('商家管理', '管理平台所有入驻商家的状态与营业情况。', actions)}
 
         <div class="bg-white rounded-lg p-6 mb-6">
             <div class="flex flex-col sm:flex-row gap-4 mb-4">
@@ -1060,6 +1091,49 @@ function renderPlatformMerchants() {
             ${renderPlatformMerchantTable()}
         </div>
     </div>`;
+}
+
+function openAddMerchantDialog() {
+    const dialog = document.createElement('div');
+    dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    dialog.innerHTML = `
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-semibold mb-4">新增商家</h3>
+            <div class="space-y-3">
+                <input type="text" id="newMerchantName" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="商家名称 *" />
+                <input type="text" id="newMerchantCode" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="商户编码（可选，留空自动生成）" />
+                <input type="text" id="newMerchantContact" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="联系人" />
+                <input type="text" id="newMerchantPhone" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="联系电话" />
+                <input type="text" id="newMerchantAddress" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="地址" />
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="this.closest('.fixed').remove()" class="flex-1 px-4 py-2 border rounded-lg text-sm">取消</button>
+                <button onclick="submitAddMerchant()" class="flex-1 px-4 py-2 text-white rounded-lg text-sm" style="background: var(--primary-green);">确认</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(dialog);
+}
+
+async function submitAddMerchant() {
+    const data = {
+        name: document.getElementById('newMerchantName').value.trim(),
+        merchantCode: document.getElementById('newMerchantCode').value.trim() || undefined,
+        contactName: document.getElementById('newMerchantContact').value.trim(),
+        contactPhone: document.getElementById('newMerchantPhone').value.trim(),
+        addressDetail: document.getElementById('newMerchantAddress').value.trim()
+    };
+    if (!data.name) {
+        Toast.show('请输入商家名称', 'error');
+        return;
+    }
+    await withSubmitting(async () => {
+        await API.Platform.createMerchant(data);
+        await syncPlatformDashboardData(true);
+        document.querySelector('.fixed.inset-0')?.remove();
+        renderApp();
+        Toast.show('新增商家成功', 'success');
+    }, '新增商家失败');
 }
 
 function renderPlatformMerchantTable() {
@@ -1090,7 +1164,7 @@ async function toggleMerchantStatus(id, currentStatus) {
         await API.Platform.updateStatus(newStatus, id);
         await syncPlatformDashboardData(true);
         renderApp();
-        alert(`${action}成功`);
+        Toast.show(`${action}成功`, 'success');
     }, `${action}商家失败`);
 }
 
@@ -1103,7 +1177,7 @@ async function toggleMerchantBusinessStatus(id, currentStatus) {
         await API.Platform.updateBusinessStatus(newStatus, id);
         await syncPlatformDashboardData(true);
         renderApp();
-        alert(`强制${action}成功`);
+        Toast.show(`强制${action}成功`, 'success');
     }, `强制${action}失败`);
 }
 
@@ -1800,7 +1874,7 @@ async function openAddProductDialog() {
     if (isSubmitting) return;
     await syncCategoriesData(true);
     if (!dishCategoryOptions.length) {
-        alert('请先在后端创建菜品分类');
+        Toast.show('请先在后端创建菜品分类', 'error');
         return;
     }
 
@@ -1811,7 +1885,7 @@ async function openAddProductDialog() {
     if (!categoryIdInput) return;
     const categoryId = Number(categoryIdInput);
     if (!Number.isFinite(categoryId)) {
-        alert('分类 ID 不合法');
+        Toast.show('分类 ID 不合法', 'error');
         return;
     }
 
@@ -1819,7 +1893,7 @@ async function openAddProductDialog() {
     if (!priceInput) return;
     const price = Number(priceInput);
     if (!Number.isFinite(price) || price <= 0) {
-        alert('商品价格必须大于 0');
+        Toast.show('商品价格必须大于 0', 'error');
         return;
     }
 
@@ -1839,9 +1913,9 @@ async function openAddProductDialog() {
         });
         await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
-        alert('新增商品成功');
+        Toast.show('新增商品成功', 'success');
     } catch (error) {
-        alert(`新增商品失败：${error.message || error}`);
+        Toast.show(`新增商品失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -1860,7 +1934,7 @@ async function editProduct(id) {
         if (!categoryIdInput) return;
         const categoryId = Number(categoryIdInput);
         if (!Number.isFinite(categoryId)) {
-            alert('分类 ID 不合法');
+            Toast.show('分类 ID 不合法', 'error');
             return;
         }
 
@@ -1868,7 +1942,7 @@ async function editProduct(id) {
         if (!priceInput) return;
         const price = Number(priceInput);
         if (!Number.isFinite(price) || price <= 0) {
-            alert('商品价格必须大于 0');
+            Toast.show('商品价格必须大于 0', 'error');
             return;
         }
 
@@ -1888,9 +1962,9 @@ async function editProduct(id) {
         });
         await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
-        alert('商品更新成功');
+        Toast.show('商品更新成功', 'success');
     } catch (error) {
-        alert(`更新商品失败：${error.message || error}`);
+        Toast.show(`更新商品失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -1907,7 +1981,7 @@ async function toggleProductStatus(id) {
         await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
     } catch (error) {
-        alert(`切换商品状态失败：${error.message || error}`);
+        Toast.show(`切换商品状态失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -1923,7 +1997,7 @@ async function deleteProduct(id) {
         await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
     } catch (error) {
-        alert(`删除商品失败：${error.message || error}`);
+        Toast.show(`删除商品失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -1934,11 +2008,11 @@ async function openAddSetmealDialog() {
     await Promise.all([syncCategoriesData(true), syncProductsData(true)]);
 
     if (!setmealCategoryOptions.length) {
-        alert('请先在后端创建套餐分类');
+        Toast.show('请先在后端创建套餐分类', 'error');
         return;
     }
     if (!products.length) {
-        alert('请先为当前商家创建菜品，再配置套餐');
+        Toast.show('请先为当前商家创建菜品，再配置套餐', 'error');
         return;
     }
 
@@ -1949,7 +2023,7 @@ async function openAddSetmealDialog() {
     if (!categoryIdInput) return;
     const categoryId = Number(categoryIdInput);
     if (!Number.isFinite(categoryId)) {
-        alert('套餐分类 ID 不合法');
+        Toast.show('套餐分类 ID 不合法', 'error');
         return;
     }
 
@@ -1957,7 +2031,7 @@ async function openAddSetmealDialog() {
     if (!priceInput) return;
     const price = Number(priceInput);
     if (!Number.isFinite(price) || price <= 0) {
-        alert('套餐价格必须大于 0');
+        Toast.show('套餐价格必须大于 0', 'error');
         return;
     }
 
@@ -1965,7 +2039,7 @@ async function openAddSetmealDialog() {
     if (!comboInput) return;
     const setmealDishes = parseSetmealComboInput(comboInput);
     if (!setmealDishes.length) {
-        alert('套餐菜品组合不能为空，且菜品 ID 必须属于当前商家');
+        Toast.show('套餐菜品组合不能为空，且菜品 ID 必须属于当前商家', 'error');
         return;
     }
 
@@ -1985,9 +2059,9 @@ async function openAddSetmealDialog() {
         });
         await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
-        alert('新增套餐成功');
+        Toast.show('新增套餐成功', 'success');
     } catch (error) {
-        alert(`新增套餐失败：${error.message || error}`);
+        Toast.show(`新增套餐失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2006,7 +2080,7 @@ async function editSetmeal(id) {
         if (!categoryIdInput) return;
         const categoryId = Number(categoryIdInput);
         if (!Number.isFinite(categoryId)) {
-            alert('套餐分类 ID 不合法');
+            Toast.show('套餐分类 ID 不合法', 'error');
             return;
         }
 
@@ -2014,7 +2088,7 @@ async function editSetmeal(id) {
         if (!priceInput) return;
         const price = Number(priceInput);
         if (!Number.isFinite(price) || price <= 0) {
-            alert('套餐价格必须大于 0');
+            Toast.show('套餐价格必须大于 0', 'error');
             return;
         }
 
@@ -2026,7 +2100,7 @@ async function editSetmeal(id) {
 
         const setmealDishes = parseSetmealComboInput(comboInput);
         if (!setmealDishes.length) {
-            alert('套餐菜品组合不能为空');
+            Toast.show('套餐菜品组合不能为空', 'error');
             return;
         }
 
@@ -2046,9 +2120,9 @@ async function editSetmeal(id) {
         });
         await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
-        alert('套餐更新成功');
+        Toast.show('套餐更新成功', 'success');
     } catch (error) {
-        alert(`更新套餐失败：${error.message || error}`);
+        Toast.show(`更新套餐失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2065,7 +2139,7 @@ async function toggleSetmealStatus(id) {
         await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
     } catch (error) {
-        alert(`切换套餐状态失败：${error.message || error}`);
+        Toast.show(`切换套餐状态失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2081,7 +2155,7 @@ async function deleteSetmeal(id) {
         await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
         renderApp();
     } catch (error) {
-        alert(`删除套餐失败：${error.message || error}`);
+        Toast.show(`删除套餐失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2090,7 +2164,7 @@ async function deleteSetmeal(id) {
 async function openAddEmployeeDialog() {
     if (isSubmitting) return;
     if (!canManageEmployees()) {
-        alert('当前账号没有员工管理权限');
+        Toast.show('当前账号没有员工管理权限', 'error');
         return;
     }
 
@@ -2107,14 +2181,14 @@ async function openAddEmployeeDialog() {
     if (!accountTypeInput) return;
     const accountType = Number(accountTypeInput);
     if (![ACCOUNT_TYPES.MERCHANT_ADMIN, ACCOUNT_TYPES.MERCHANT_STAFF].includes(accountType)) {
-        alert('角色只能是 2 或 3');
+        Toast.show('角色只能是 2 或 3', 'error');
         return;
     }
 
     const sex = prompt('请输入性别：1=男，2=女', '1') || '1';
     const idNumber = prompt('请输入身份证号');
     if (!idNumber || !idNumber.trim()) {
-        alert('身份证号不能为空');
+        Toast.show('身份证号不能为空', 'error');
         return;
     }
 
@@ -2131,9 +2205,9 @@ async function openAddEmployeeDialog() {
         });
         await syncEmployeesData(true);
         renderApp();
-        alert('新增员工成功，默认密码为 123456');
+        Toast.show('新增员工成功，默认密码为 123456', 'success');
     } catch (error) {
-        alert(`新增员工失败：${error.message || error}`);
+        Toast.show(`新增员工失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2142,7 +2216,7 @@ async function openAddEmployeeDialog() {
 async function editEmployee(id) {
     if (isSubmitting) return;
     if (!canManageEmployees()) {
-        alert('当前账号没有员工管理权限');
+        Toast.show('当前账号没有员工管理权限', 'error');
         return;
     }
 
@@ -2161,14 +2235,14 @@ async function editEmployee(id) {
         if (!accountTypeInput) return;
         const accountType = Number(accountTypeInput);
         if (![ACCOUNT_TYPES.MERCHANT_ADMIN, ACCOUNT_TYPES.MERCHANT_STAFF].includes(accountType)) {
-            alert('角色只能是 2 或 3');
+            Toast.show('角色只能是 2 或 3', 'error');
             return;
         }
 
         const sex = prompt('请输入性别：1=男，2=女', detail.sex || '1') || '1';
         const idNumber = prompt('请输入身份证号', detail.idNumber || '');
         if (!idNumber || !idNumber.trim()) {
-            alert('身份证号不能为空');
+            Toast.show('身份证号不能为空', 'error');
             return;
         }
 
@@ -2185,9 +2259,9 @@ async function editEmployee(id) {
         });
         await syncEmployeesData(true);
         renderApp();
-        alert('员工信息已更新');
+        Toast.show('员工信息已更新', 'success');
     } catch (error) {
-        alert(`更新员工失败：${error.message || error}`);
+        Toast.show(`更新员工失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2205,7 +2279,7 @@ async function toggleEmployeeStatus(id) {
         await syncEmployeesData(true);
         renderApp();
     } catch (error) {
-        alert(`切换员工状态失败：${error.message || error}`);
+        Toast.show(`切换员工状态失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2214,11 +2288,11 @@ async function toggleEmployeeStatus(id) {
 async function toggleBusinessStatus() {
     if (isSubmitting) return;
     if (!isMerchantAdmin()) {
-        alert('当前账号不能切换商家营业状态');
+        Toast.show('当前账号不能切换商家营业状态', 'error');
         return;
     }
     if (!merchantProfile?.id) {
-        alert('当前商家信息未加载完成');
+        Toast.show('当前商家信息未加载完成', 'error');
         return;
     }
 
@@ -2232,7 +2306,7 @@ async function toggleBusinessStatus() {
         await syncMerchantContext(true);
         renderApp();
     } catch (error) {
-        alert(`切换营业状态失败：${error.message || error}`);
+        Toast.show(`切换营业状态失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2249,7 +2323,7 @@ async function acceptOrder(id) {
         }
         renderApp();
     } catch (error) {
-        alert(`接单失败：${error.message || error}`);
+        Toast.show(`接单失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
@@ -2270,7 +2344,7 @@ async function updateOrderStatus(id, nextStatus) {
         }
         renderApp();
     } catch (error) {
-        alert(`更新订单状态失败：${error.message || error}`);
+        Toast.show(`更新订单状态失败：${error.message || error}`, 'error');
     } finally {
         setSubmitting(false);
     }
