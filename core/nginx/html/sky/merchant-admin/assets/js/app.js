@@ -43,6 +43,12 @@ let setmealCategoryOptions = [];
 let merchantProfile = null;
 let campusServiceStatus = 1;
 let isSubmitting = false;
+let platformMerchants = [];
+let platformStatistics = {
+    totalMerchants: 0,
+    activeMerchants: 0,
+    businessActiveMerchants: 0
+};
 
 const viewSyncedAt = {
     context: 0,
@@ -52,7 +58,10 @@ const viewSyncedAt = {
     setmeals: 0,
     statistics: 0,
     employees: 0,
-    merchantProfile: 0
+    merchantProfile: 0,
+    platformDashboard: 0,
+    platformMerchants: 0,
+    platformStatistics: 0
 };
 
 const icons = {
@@ -518,6 +527,42 @@ async function syncEmployeesData(force = false) {
     markSynced('employees');
 }
 
+async function syncPlatformDashboardData(force = false) {
+    if (!shouldSync('platformDashboard', force)) return;
+
+    try {
+        const merchantPage = await API.Platform.getMerchantPage({ page: 1, pageSize: 1 });
+        const totalMerchants = toNumber(merchantPage?.total, 0);
+
+        const allMerchants = await fetchPagedRecords(
+            (params) => API.Platform.getMerchantPage(params),
+            {}, 40, 25
+        );
+
+        platformMerchants.splice(0, platformMerchants.length, ...(allMerchants || []).map((item) => ({
+            id: item.id,
+            name: item.name || '未命名商家',
+            address: item.address || '--',
+            contactPerson: item.contactPerson || '--',
+            contactPhone: item.contactPhone || '--',
+            status: toNumber(item.status, 1),
+            businessStatus: toNumber(item.businessStatus, 1),
+            createTime: String(item.createTime || '').split(' ')[0] || '--'
+        })));
+
+        const activeCount = platformMerchants.filter((m) => m.status === 1).length;
+        const businessActiveCount = platformMerchants.filter((m) => m.businessStatus === 1).length;
+
+        platformStatistics.totalMerchants = totalMerchants;
+        platformStatistics.activeMerchants = activeCount;
+        platformStatistics.businessActiveMerchants = businessActiveCount;
+
+        markSynced('platformDashboard');
+    } catch (error) {
+        console.warn('Platform dashboard sync failed:', error);
+    }
+}
+
 function rebuildCategoryStatisticsFromProducts() {
     if (!products.length) return;
     const counter = new Map();
@@ -645,6 +690,12 @@ async function syncDataForView(view, force = false) {
             return;
         case 'merchantProfile':
             await syncMerchantContext(force);
+            return;
+        case 'platformDashboard':
+            await syncPlatformDashboardData(force);
+            return;
+        case 'platformMerchants':
+            await syncPlatformDashboardData(force);
             return;
         default:
             return;
