@@ -1,7 +1,7 @@
 // API service for the merchant admin console.
 // This file wraps the phase-1 multi-merchant backend endpoints.
 
-const DEFAULT_BACKEND_ORIGIN = 'http://localhost:8081';
+const DEFAULT_BACKEND_ORIGIN = 'http://localhost:8080';
 
 function getWindowLocation() {
     if (typeof window === 'undefined' || !window.location) {

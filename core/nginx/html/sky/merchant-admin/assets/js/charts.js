@@ -9,15 +9,15 @@ const CHART_FONT = "'Manrope', 'Noto Sans SC', 'PingFang SC', sans-serif";
 const CHART_THEME = {
     primary: '#2a7d58',
     secondary: '#1d5f43',
-    success: '#11a75c',
-    info: '#3b82f6',
-    violet: '#8b5cf6',
-    mint: '#14b8a6',
-    text: '#334155',
-    muted: '#607089',
-    grid: 'rgba(116, 137, 170, 0.24)',
-    tooltipBg: 'rgba(15, 23, 42, 0.92)',
-    tooltipText: '#e2e8f0'
+    success: '#2e8c62',
+    info: '#3ea678',
+    violet: '#328f65',
+    mint: '#207452',
+    text: '#3e5550',
+    muted: '#6d837d',
+    grid: 'rgba(109, 131, 125, 0.24)',
+    tooltipBg: 'rgba(17, 51, 43, 0.92)',
+    tooltipText: '#d8ebe1'
 };
 const CATEGORY_COLORS = [CHART_THEME.primary, CHART_THEME.secondary, CHART_THEME.info, CHART_THEME.success, CHART_THEME.violet, CHART_THEME.mint];
 
