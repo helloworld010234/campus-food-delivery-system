@@ -784,35 +784,74 @@ function renderEmptyState(title, description) {
 }
 
 function renderSidebar() {
-    const items = [
-        { id: 'dashboard', label: '工作台', icon: 'dashboard' },
-        { id: 'products', label: '商品管理', icon: 'products' },
-        { id: 'orders', label: '订单管理', icon: 'orders' },
-        { id: 'setmeals', label: '套餐管理', icon: 'setmeals' },
-        { id: 'statistics', label: '数据中心', icon: 'statistics' },
-        { id: 'merchantProfile', label: '商家信息', icon: 'merchant' }
-    ];
+    const isPlatform = toNumber(currentUser?.accountType) === ACCOUNT_TYPES.PLATFORM_ADMIN;
 
-    if (canManageEmployees()) {
-        items.splice(5, 0, { id: 'employees', label: '员工管理', icon: 'employees' });
+    let items;
+    if (isPlatform) {
+        items = [
+            { id: 'platformDashboard', label: '平台概览', icon: 'dashboard' },
+            { id: 'platformMerchants', label: '商家管理', icon: 'merchant' },
+            { id: 'platformStatistics', label: '平台数据', icon: 'statistics' }
+        ];
+    } else {
+        items = [
+            { id: 'dashboard', label: '工作台', icon: 'dashboard' },
+            { id: 'products', label: '商品管理', icon: 'products' },
+            { id: 'orders', label: '订单管理', icon: 'orders' },
+            { id: 'setmeals', label: '套餐管理', icon: 'setmeals' },
+            { id: 'statistics', label: '数据中心', icon: 'statistics' },
+            { id: 'merchantProfile', label: '商家信息', icon: 'merchant' }
+        ];
+        if (canManageEmployees()) {
+            items.splice(5, 0, { id: 'employees', label: '员工管理', icon: 'employees' });
+        }
     }
+
+    const title = isPlatform ? '校园外卖平台端' : '校园外卖商家端';
+    const subtitle = isPlatform
+        ? `已登录 · ${escapeHtml(getAccountTypeLabel(currentUser?.accountType))}`
+        : `已绑定当前商户 · ${escapeHtml(getAccountTypeLabel(currentUser?.accountType))}`;
 
     return `<div class="sidebar">
         <div class="p-6 border-b border-gray-200">
-            <h1 class="text-xl font-bold" style="color: #ffd5b6;">校园外卖商家端</h1>
-            <p class="text-sm text-gray-500 mt-1">${escapeHtml(getMerchantDisplayName())}</p>
-            <p class="text-xs mt-3" style="color: rgba(222,231,245,0.58);">已绑定当前商户 · ${escapeHtml(getAccountTypeLabel(currentUser?.accountType))}</p>
+            <h1 class="text-xl font-bold" style="color: #ffd5b6;">${escapeHtml(title)}</h1>
+            <p class="text-sm text-gray-500 mt-1">${isPlatform ? '全局管理视图' : escapeHtml(getMerchantDisplayName())}</p>
+            <p class="text-xs mt-3" style="color: rgba(222,231,245,0.58);">${escapeHtml(subtitle)}</p>
         </div>
         <nav class="py-4">
             ${items.map((item) => `<div class="sidebar-item ${currentView === item.id ? 'active' : ''}" onclick="navigateTo('${item.id}')">${icons[item.icon]}<span>${item.label}</span></div>`).join('')}
         </nav>
         <div class="px-5 pb-6 pt-2 text-xs leading-6" style="color: rgba(220,230,246,0.62);">
-            当前商家所有商品、订单、员工数据都由后端按 <code>merchantId</code> 自动隔离。
+            ${isPlatform ? '平台管理员可查看和管理所有入驻商家。' : '当前商家所有商品、订单、员工数据都由后端按 <code>merchantId</code> 自动隔离。'}
         </div>
     </div>`;
 }
 
 function renderTopBar() {
+    const isPlatform = toNumber(currentUser?.accountType) === ACCOUNT_TYPES.PLATFORM_ADMIN;
+
+    if (isPlatform) {
+        return `<div class="top-bar">
+            <div>
+                <h2 class="text-xl font-semibold" style="color: var(--text-primary);">${escapeHtml(VIEW_TITLES[currentView] || '平台概览')}</h2>
+                <p class="text-sm mt-1" style="color: var(--text-secondary);">校园外卖平台管理后台 · 全局视图</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 justify-end">
+                <div class="px-3 py-2 rounded-xl border text-sm" style="background: rgba(255,255,255,0.72); border-color: rgba(196,208,226,0.64);">
+                    <span style="color: var(--text-secondary);">当前角色</span>
+                    <span class="ml-2 font-semibold" style="color: var(--text-primary);">${escapeHtml(getAccountTypeLabel(currentUser?.accountType))}</span>
+                </div>
+                <button class="flex items-center gap-3 px-3 py-2 rounded-xl border" style="background: rgba(255,255,255,0.8); border-color: rgba(196,208,226,0.64);" onclick="logout()">
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));">${escapeHtml((currentUser?.name || '管').slice(0, 1))}</div>
+                    <div class="text-left">
+                        <p class="text-sm font-semibold" style="color: var(--text-primary);">${escapeHtml(currentUser?.name || '平台管理员')}</p>
+                        <p class="text-xs" style="color: var(--text-secondary);">退出登录</p>
+                    </div>
+                </button>
+            </div>
+        </div>`;
+    }
+
     const pendingCount = orders.filter((item) => item.status === 'pending').length;
     const campusMeta = getCampusStatusMeta(campusServiceStatus);
     const businessMeta = getBusinessStatusMeta(merchantProfile?.businessStatus ?? 1);
@@ -954,6 +993,122 @@ function renderDashboard() {
             </div>
         </div>
     </div>`;
+}
+
+function renderPlatformDashboard() {
+    const activeCount = platformStatistics.activeMerchants || 0;
+    const totalCount = platformStatistics.totalMerchants || 0;
+    const businessActiveCount = platformStatistics.businessActiveMerchants || 0;
+
+    return `<div class="content-area fade-in">
+        ${renderPageHeader('平台工作台', '全局商家运营数据一览。')}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+            ${renderMetricCard('入驻商家', String(totalCount), '总计', icons.merchant, 'background: linear-gradient(135deg, #2a7d58, #1d5f43);')}
+            ${renderMetricCard('正常运营', String(activeCount), '启用状态', `<svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`, 'background: linear-gradient(135deg, #2e8c62, #3ea678);')}
+            ${renderMetricCard('营业中商家', String(businessActiveCount), '正在营业', icons.clock, 'background: linear-gradient(135deg, #328f65, #207452);')}
+            ${renderMetricCard('已禁用', String(totalCount - activeCount), '停用状态', icons.delete, 'background: linear-gradient(135deg, #cb4f4f, #a03d3d);')}
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+            <div class="xl:col-span-2 bg-white rounded-lg p-6">
+                <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">商家状态分布</h3>
+                <div id="merchantStatusChart" style="height: 300px;"></div>
+            </div>
+            <div class="bg-white rounded-lg p-6">
+                <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">快捷操作</h3>
+                <div class="space-y-3">
+                    <button class="w-full px-4 py-3 rounded-lg text-left text-sm font-medium" style="background: rgba(42,125,88,0.08); color: var(--primary-green);" onclick="navigateTo('platformMerchants')">
+                        ${icons.merchant} 商家管理
+                    </button>
+                    <button class="w-full px-4 py-3 rounded-lg text-left text-sm font-medium" style="background: rgba(42,125,88,0.08); color: var(--primary-green);" onclick="navigateTo('platformStatistics')">
+                        ${icons.statistics} 平台数据
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold" style="color: var(--text-primary);">商家列表</h3>
+                <button class="text-sm" style="color: var(--primary-green);" onclick="navigateTo('platformMerchants')">查看全部 →</button>
+            </div>
+            ${platformMerchants.length === 0
+                ? renderEmptyState('暂无商家数据', '商家数据加载中，请稍后刷新。')
+                : `<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="border-bottom: 1px solid var(--border-color);"><th class="text-left py-3 px-2" style="color: var(--text-secondary);">ID</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">商家名称</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">状态</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">营业</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">创建时间</th></tr></thead><tbody>${platformMerchants.slice(0, 10).map((m) => `<tr style="border-bottom: 1px solid #f3f4f6;"><td class="py-3 px-2">${m.id}</td><td class="py-3 px-2 font-medium">${escapeHtml(m.name)}</td><td class="py-3 px-2">${renderBadge(m.status === 1 ? '正常' : '已禁用', m.status === 1 ? 'status-online' : 'status-offline')}</td><td class="py-3 px-2">${renderBadge(m.businessStatus === 1 ? '营业中' : '已打烊', m.businessStatus === 1 ? 'status-online' : 'status-pending')}</td><td class="py-3 px-2" style="color: var(--text-secondary);">${m.createTime}</td></tr>`).join('')}</tbody></table></div>`}
+        </div>
+    </div>`;
+}
+
+function renderPlatformMerchants() {
+    return `<div class="content-area fade-in">
+        ${renderPageHeader('商家管理', '管理平台所有入驻商家的状态与营业情况。')}
+
+        <div class="bg-white rounded-lg p-6 mb-6">
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <input type="text" id="merchantSearch" class="flex-1 px-4 py-2 border rounded-lg text-sm" placeholder="搜索商家名称..." oninput="filterPlatformMerchants()" />
+                <select id="merchantStatusFilter" class="px-4 py-2 border rounded-lg text-sm" onchange="filterPlatformMerchants()">
+                    <option value="">全部状态</option>
+                    <option value="1">正常</option>
+                    <option value="0">已禁用</option>
+                </select>
+                <select id="merchantBusinessFilter" class="px-4 py-2 border rounded-lg text-sm" onchange="filterPlatformMerchants()">
+                    <option value="">全部营业</option>
+                    <option value="1">营业中</option>
+                    <option value="0">已打烊</option>
+                </select>
+            </div>
+            ${renderPlatformMerchantTable()}
+        </div>
+    </div>`;
+}
+
+function renderPlatformMerchantTable() {
+    const searchText = (document.getElementById('merchantSearch')?.value || '').trim().toLowerCase();
+    const statusValue = document.getElementById('merchantStatusFilter')?.value || '';
+    const businessValue = document.getElementById('merchantBusinessFilter')?.value || '';
+
+    const filtered = platformMerchants.filter((m) => {
+        const matchSearch = !searchText || (m.name || '').toLowerCase().includes(searchText);
+        const matchStatus = !statusValue || String(m.status) === statusValue;
+        const matchBusiness = !businessValue || String(m.businessStatus) === businessValue;
+        return matchSearch && matchStatus && matchBusiness;
+    });
+
+    if (filtered.length === 0) {
+        return renderEmptyState('没有找到商家', '请尝试调整搜索条件或刷新数据。');
+    }
+
+    return `<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="border-bottom: 1px solid var(--border-color);"><th class="text-left py-3 px-2" style="color: var(--text-secondary);">ID</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">商家名称</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">联系人</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">联系电话</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">状态</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">营业状态</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">创建时间</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">操作</th></tr></thead><tbody>${filtered.map((m) => `<tr style="border-bottom: 1px solid #f3f4f6;"><td class="py-3 px-2">${m.id}</td><td class="py-3 px-2 font-medium">${escapeHtml(m.name)}</td><td class="py-3 px-2">${escapeHtml(m.contactPerson)}</td><td class="py-3 px-2">${escapeHtml(m.contactPhone)}</td><td class="py-3 px-2">${renderBadge(m.status === 1 ? '正常' : '已禁用', m.status === 1 ? 'status-online' : 'status-offline')}</td><td class="py-3 px-2">${renderBadge(m.businessStatus === 1 ? '营业中' : '已打烊', m.businessStatus === 1 ? 'status-online' : 'status-pending')}</td><td class="py-3 px-2" style="color: var(--text-secondary);">${m.createTime}</td><td class="py-3 px-2"><div class="flex gap-2"><button class="text-xs px-2 py-1 rounded border" style="border-color: var(--primary-green); color: var(--primary-green);" onclick="toggleMerchantStatus(${m.id}, ${m.status})" data-submit-btn>${m.status === 1 ? '禁用' : '启用'}</button><button class="text-xs px-2 py-1 rounded border" style="border-color: var(--primary-green); color: var(--primary-green);" onclick="toggleMerchantBusinessStatus(${m.id}, ${m.businessStatus})" data-submit-btn>${m.businessStatus === 1 ? '打烊' : '营业'}</button></div></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+async function toggleMerchantStatus(id, currentStatus) {
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    const action = newStatus === 1 ? '启用' : '禁用';
+    if (!confirm(`确认${action}该商家？`)) return;
+
+    await withSubmitting(async () => {
+        await API.Platform.updateStatus(newStatus, id);
+        await syncPlatformDashboardData(true);
+        renderApp();
+        alert(`${action}成功`);
+    }, `${action}商家失败`);
+}
+
+async function toggleMerchantBusinessStatus(id, currentStatus) {
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    const action = newStatus === 1 ? '营业' : '打烊';
+    if (!confirm(`确认强制${action}该商家？`)) return;
+
+    await withSubmitting(async () => {
+        await API.Platform.updateBusinessStatus(newStatus, id);
+        await syncPlatformDashboardData(true);
+        renderApp();
+        alert(`强制${action}成功`);
+    }, `强制${action}失败`);
+}
+
+function filterPlatformMerchants() {
+    renderApp();
 }
 
 function renderProducts() {
@@ -1480,8 +1635,17 @@ function getSelectedOrder() {
 }
 
 function updateDocumentTitle() {
-    const title = VIEW_TITLES[currentView] || VIEW_TITLES.dashboard;
-    document.title = `${title} - ${getMerchantDisplayName()}`;
+    const titles = {
+        ...VIEW_TITLES,
+        platformDashboard: '平台工作台',
+        platformMerchants: '商家管理',
+        platformStatistics: '平台数据'
+    };
+    const title = titles[currentView] || titles.dashboard;
+    const suffix = toNumber(currentUser?.accountType) === ACCOUNT_TYPES.PLATFORM_ADMIN
+        ? '平台管理'
+        : getMerchantDisplayName();
+    document.title = `${title} - ${suffix}`;
 }
 
 function buildCategoryHint(list) {
@@ -2158,6 +2322,12 @@ async function renderApp() {
             break;
         case 'merchantProfile':
             content = renderMerchantProfile();
+            break;
+        case 'platformDashboard':
+            content = renderPlatformDashboard();
+            break;
+        case 'platformMerchants':
+            content = renderPlatformMerchants();
             break;
         default:
             content = renderDashboard();
