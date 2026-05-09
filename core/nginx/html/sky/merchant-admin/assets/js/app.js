@@ -530,7 +530,7 @@ function rebuildCategoryStatisticsFromProducts() {
     const labels = [...counter.keys()];
     const total = [...counter.values()].reduce((sum, value) => sum + value, 0) || 1;
     const values = [...counter.values()].map((value) => Number(((value / total) * 100).toFixed(1)));
-    const colors = ['#2a7d58', '#1d5f43', '#11a75c', '#3b82f6', '#8b5cf6', '#14b8a6', '#0ea5e9', '#f43f5e'];
+    const colors = ['#2a7d58', '#1d5f43', '#2e8c62', '#3ea678', '#328f65', '#207452', '#1f6e4d', '#164f38'];
 
     statistics.categoryData.labels = labels;
     statistics.categoryData.values = values;
@@ -814,9 +814,9 @@ function renderDashboard() {
         ${renderPageHeader('商家工作台', '围绕当前商户的订单、商品与经营数据统一运营。')}
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
             ${renderMetricCard('今日订单', String(statistics.today.orders || 0), statistics.trend.ordersChange || '今日概览', icons.orders, 'background: linear-gradient(135deg, #2a7d58, #1d5f43);')}
-            ${renderMetricCard('今日营业额', formatCurrency(statistics.today.revenue || 0), statistics.trend.revenueChange || '营收变化', `<svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`, 'background: linear-gradient(135deg, #11a75c, #48c78e);')}
-            ${renderMetricCard('待接单', String(statistics.today.pendingOrders || 0), statistics.trend.pendingChange || '待处理提醒', icons.clock, 'background: linear-gradient(135deg, #f59e0b, #fbbf24);')}
-            ${renderMetricCard('在售商品数', String(statistics.today.totalProducts || 0), statistics.trend.productsChange || '菜单规模', icons.products, 'background: linear-gradient(135deg, #0ea5a5, #14b8a6);')}
+            ${renderMetricCard('今日营业额', formatCurrency(statistics.today.revenue || 0), statistics.trend.revenueChange || '营收变化', `<svg class="icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`, 'background: linear-gradient(135deg, #2e8c62, #3ea678);')}
+            ${renderMetricCard('待接单', String(statistics.today.pendingOrders || 0), statistics.trend.pendingChange || '待处理提醒', icons.clock, 'background: linear-gradient(135deg, #328f65, #207452);')}
+            ${renderMetricCard('在售商品数', String(statistics.today.totalProducts || 0), statistics.trend.productsChange || '菜单规模', icons.products, 'background: linear-gradient(135deg, #1f6e4d, #164f38);')}
         </div>
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
             <div class="xl:col-span-2 bg-white rounded-lg p-6 card-hover">
@@ -1390,21 +1390,21 @@ function renderLoginPage() {
         <div class="login-left">
             <div class="login-content flex flex-col items-center justify-center h-full text-white px-12">
                 <h1 class="font-bold mb-6">杏林校园外卖</h1>
-                <p class="text-2xl mb-4">多商户商家运营后台</p>
-                <p class="text-lg opacity-90">登录后进入当前商家的订单、菜单与营业工作台</p>
+                <p class="text-2xl mb-4">多商户运营管理后台</p>
+                <p class="text-lg opacity-90">商家端与平台端统一入口</p>
                 <p class="text-sm mt-10 px-4 py-2 rounded-full border border-white/25 bg-white/10 tracking-wider">MULTI-MERCHANT CAMPUS DELIVERY</p>
             </div>
         </div>
         <div class="login-right">
             <div class="w-full max-w-md">
                 <div class="text-center mb-8">
-                    <h2 class="text-3xl font-bold mb-2" style="color: var(--text-primary);">商家后台登录</h2>
-                    <p class="text-gray-500">当前版本仅支持商家管理员和商家员工登录</p>
+                    <h2 class="text-3xl font-bold mb-2" style="color: var(--text-primary);">管理后台登录</h2>
+                    <p class="text-gray-500">商家管理员、员工与平台管理员统一登录</p>
                 </div>
                 <form id="loginForm" class="space-y-6">
                     <div>
                         <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">用户名</label>
-                        <input type="text" id="username" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none" placeholder="请输入商家账号，例如 m2admin_phase1" />
+                        <input type="text" id="username" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none" placeholder="请输入账号" />
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">密码</label>
@@ -1415,9 +1415,9 @@ function renderLoginPage() {
                             <input type="checkbox" class="mr-2" checked />
                             <span class="text-sm text-gray-600">记住本次登录</span>
                         </label>
-                        <span class="text-sm" style="color: var(--primary-green);">平台管理员请使用平台端</span>
+                        <span class="text-sm" style="color: var(--primary-green);">平台/商家账号通用</span>
                     </div>
-                    <button type="submit" class="w-full btn-primary py-3 rounded-lg text-white font-semibold text-lg">登录商家后台</button>
+                    <button type="submit" class="w-full btn-primary py-3 rounded-lg text-white font-semibold text-lg">登录后台</button>
                 </form>
             </div>
         </div>
@@ -1495,10 +1495,6 @@ async function handleLogin(event) {
 
     try {
         const result = await API.Employee.login(username, password);
-        if (toNumber(result.accountType) === ACCOUNT_TYPES.PLATFORM_ADMIN || !result.merchantId) {
-            alert('该账号属于平台端，请使用平台管理端登录。');
-            return;
-        }
 
         API.Token.set(result.token);
         currentUser = {
@@ -1512,8 +1508,16 @@ async function handleLogin(event) {
         resetSyncState();
         currentOrderStatus = '';
         selectedOrderId = null;
-        currentView = 'dashboard';
-        await syncDataForView('dashboard', true);
+
+        // 角色分流
+        if (toNumber(result.accountType) === ACCOUNT_TYPES.PLATFORM_ADMIN) {
+            currentView = 'platformDashboard';
+            await syncDataForView('platformDashboard', true);
+        } else {
+            currentView = 'dashboard';
+            await syncDataForView('dashboard', true);
+        }
+
         renderApp();
     } catch (error) {
         alert(`登录失败：${error.message || error}`);
