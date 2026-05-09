@@ -1137,22 +1137,25 @@ async function submitAddMerchant() {
 }
 
 function renderPlatformMerchantTable() {
-    const searchText = (document.getElementById('merchantSearch')?.value || '').trim().toLowerCase();
-    const statusValue = document.getElementById('merchantStatusFilter')?.value || '';
-    const businessValue = document.getElementById('merchantBusinessFilter')?.value || '';
-
-    const filtered = platformMerchants.filter((m) => {
-        const matchSearch = !searchText || (m.name || '').toLowerCase().includes(searchText);
-        const matchStatus = !statusValue || String(m.status) === statusValue;
-        const matchBusiness = !businessValue || String(m.businessStatus) === businessValue;
-        return matchSearch && matchStatus && matchBusiness;
-    });
-
-    if (filtered.length === 0) {
-        return renderEmptyState('没有找到商家', '请尝试调整搜索条件或刷新数据。');
-    }
-
-    return `<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr style="border-bottom: 1px solid var(--border-color);"><th class="text-left py-3 px-2" style="color: var(--text-secondary);">ID</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">商家名称</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">联系人</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">联系电话</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">状态</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">营业状态</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">创建时间</th><th class="text-left py-3 px-2" style="color: var(--text-secondary);">操作</th></tr></thead><tbody>${filtered.map((m) => `<tr style="border-bottom: 1px solid #f3f4f6;"><td class="py-3 px-2">${m.id}</td><td class="py-3 px-2 font-medium">${escapeHtml(m.name)}</td><td class="py-3 px-2">${escapeHtml(m.contactPerson)}</td><td class="py-3 px-2">${escapeHtml(m.contactPhone)}</td><td class="py-3 px-2">${renderBadge(m.status === 1 ? '正常' : '已禁用', m.status === 1 ? 'status-online' : 'status-offline')}</td><td class="py-3 px-2">${renderBadge(m.businessStatus === 1 ? '营业中' : '已打烊', m.businessStatus === 1 ? 'status-online' : 'status-pending')}</td><td class="py-3 px-2" style="color: var(--text-secondary);">${m.createTime}</td><td class="py-3 px-2"><div class="flex gap-2"><button class="text-xs px-2 py-1 rounded border" style="border-color: var(--primary-green); color: var(--primary-green);" onclick="toggleMerchantStatus(${m.id}, ${m.status})" data-submit-btn>${m.status === 1 ? '禁用' : '启用'}</button><button class="text-xs px-2 py-1 rounded border" style="border-color: var(--primary-green); color: var(--primary-green);" onclick="toggleMerchantBusinessStatus(${m.id}, ${m.businessStatus})" data-submit-btn>${m.businessStatus === 1 ? '打烊' : '营业'}</button></div></td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <th class="text-left py-3 px-2" style="color: var(--text-secondary);">ID</th>
+                    <th class="text-left py-3 px-2" style="color: var(--text-secondary);">商家名称</th>
+                    <th class="text-left py-3 px-2" style="color: var(--text-secondary);">联系人</th>
+                    <th class="text-left py-3 px-2" style="color: var(--text-secondary);">联系电话</th>
+                    <th class="text-left py-3 px-2" style="color: var(--text-secondary);">状态</th>
+                    <th class="text-left py-3 px-2" style="color: var(--text-secondary);">营业状态</th>
+                    <th class="text-left py-3 px-2" style="color: var(--text-secondary);">创建时间</th>
+                    <th class="text-left py-3 px-2" style="color: var(--text-secondary);">操作</th>
+                </tr>
+            </thead>
+            <tbody id="merchantTableBody">
+                <tr><td colspan="8" class="py-8 text-center" style="color:var(--text-secondary)">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>`;
 }
 
 async function toggleMerchantStatus(id, currentStatus) {
@@ -1182,7 +1185,42 @@ async function toggleMerchantBusinessStatus(id, currentStatus) {
 }
 
 function filterPlatformMerchants() {
-    renderApp();
+    const tbody = document.getElementById('merchantTableBody');
+    if (!tbody) return;
+
+    const searchText = (document.getElementById('merchantSearch')?.value || '').trim().toLowerCase();
+    const statusValue = document.getElementById('merchantStatusFilter')?.value || '';
+    const businessValue = document.getElementById('merchantBusinessFilter')?.value || '';
+
+    const filtered = platformMerchants.filter((m) => {
+        const matchSearch = !searchText || (m.name || '').toLowerCase().includes(searchText);
+        const matchStatus = !statusValue || String(m.status) === statusValue;
+        const matchBusiness = !businessValue || String(m.businessStatus) === businessValue;
+        return matchSearch && matchStatus && matchBusiness;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center" style="color:var(--text-secondary)">没有找到商家</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map((m) => `
+        <tr style="border-bottom: 1px solid #f3f4f6;">
+            <td class="py-3 px-2">${m.id}</td>
+            <td class="py-3 px-2 font-medium">${escapeHtml(m.name)}</td>
+            <td class="py-3 px-2">${escapeHtml(m.contactPerson || '')}</td>
+            <td class="py-3 px-2">${escapeHtml(m.contactPhone || '')}</td>
+            <td class="py-3 px-2">${renderBadge(m.status === 1 ? '正常' : '已禁用', m.status === 1 ? 'status-online' : 'status-offline')}</td>
+            <td class="py-3 px-2">${renderBadge(m.businessStatus === 1 ? '营业中' : '已打烊', m.businessStatus === 1 ? 'status-online' : 'status-pending')}</td>
+            <td class="py-3 px-2" style="color: var(--text-secondary);">${m.createTime || ''}</td>
+            <td class="py-3 px-2">
+                <div class="flex gap-2">
+                    <button class="text-xs px-2 py-1 rounded border" style="border-color: var(--primary-green); color: var(--primary-green);" onclick="toggleMerchantStatus(${m.id}, ${m.status})" data-submit-btn>${m.status === 1 ? '禁用' : '启用'}</button>
+                    <button class="text-xs px-2 py-1 rounded border" style="border-color: var(--primary-green); color: var(--primary-green);" onclick="toggleMerchantBusinessStatus(${m.id}, ${m.businessStatus})" data-submit-btn>${m.businessStatus === 1 ? '打烊' : '营业'}</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
 }
 
 function renderProducts() {
@@ -1722,37 +1760,238 @@ function updateDocumentTitle() {
     document.title = `${title} - ${suffix}`;
 }
 
-function buildCategoryHint(list) {
-    return list.map((item) => `${item.id}:${item.name}`).join('；');
+function createFormDialog({ title, width = 'md', content, onSubmit, validate, submitText = '确认', cancelText = '取消' }) {
+    const dialog = document.createElement('div');
+    dialog.className = 'dialog-overlay';
+    const widthClass = width === 'lg' ? 'dialog-lg' : '';
+
+    dialog.innerHTML = `
+        <div class="dialog-panel ${widthClass}" role="dialog" aria-modal="true">
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);">${escapeHtml(title)}</h3>
+            <form id="dialogForm" autocomplete="off">${content}</form>
+            <div class="dialog-actions">
+                <button type="button" class="btn-cancel" id="dialogCancel">${escapeHtml(cancelText)}</button>
+                <button type="submit" class="btn-primary-submit" id="dialogSubmit" form="dialogForm">${escapeHtml(submitText)}</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    const form = dialog.querySelector('#dialogForm');
+    const submitBtn = dialog.querySelector('#dialogSubmit');
+
+    function closeDialog() {
+        dialog.style.animation = 'fadeIn 0.15s ease reverse';
+        dialog.querySelector('.dialog-panel').style.animation = 'dialogSlideIn 0.2s ease reverse';
+        setTimeout(() => dialog.remove(), 200);
+    }
+
+    function clearErrors() {
+        form.querySelectorAll('.form-error-text').forEach((el) => el.remove());
+        form.querySelectorAll('.is-invalid').forEach((el) => el.classList.remove('is-invalid'));
+    }
+
+    function showFieldError(fieldId, message) {
+        const field = form.querySelector(`[name="${fieldId}"], #${fieldId}`);
+        if (!field) return;
+        field.classList.add('is-invalid');
+        const errorEl = document.createElement('div');
+        errorEl.className = 'form-error-text';
+        errorEl.textContent = message;
+        if (field.parentElement.classList.contains('radio-group') || field.parentElement.classList.contains('image-upload-row')) {
+            field.parentElement.after(errorEl);
+        } else {
+            field.after(errorEl);
+        }
+        if (field.focus) field.focus();
+    }
+
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) closeDialog();
+    });
+
+    dialog.querySelector('#dialogCancel').addEventListener('click', closeDialog);
+
+    dialog.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDialog();
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (submitBtn.disabled) return;
+        clearErrors();
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        if (validate) {
+            const error = validate(data, form);
+            if (error) {
+                const [fieldId, message] = error;
+                showFieldError(fieldId, message);
+                return;
+            }
+        }
+
+        try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中...';
+            await onSubmit(data, form);
+            closeDialog();
+        } catch (err) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = submitText;
+            throw err;
+        }
+    });
+
+    const firstInput = form.querySelector('input:not([type="hidden"]), select, textarea');
+    if (firstInput) firstInput.focus();
+
+    return { dialog, closeDialog, clearErrors, showFieldError };
 }
 
-function buildDishComboHint() {
-    const sample = products.slice(0, 12).map((item) => `${item.id}:${item.name}`).join('；');
-    return sample || '请先创建菜品';
+function createImageUploadRow({ name, initialUrl = '', label = '图片' }) {
+    const id = `img_${name}_${Date.now()}`;
+    return {
+        html: `
+            <div class="form-row">
+                <label class="form-label">${escapeHtml(label)}</label>
+                <div class="image-upload-row">
+                    ${initialUrl ? `<img src="${escapeHtml(initialUrl)}" class="image-upload-preview" id="${id}_preview" />` : `<div class="image-upload-preview" id="${id}_preview" style="display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;">无图片</div>`}
+                    <div style="flex:1;">
+                        <input type="file" id="${id}_file" accept="image/*" style="display:none;" />
+                        <button type="button" class="image-upload-btn" onclick="document.getElementById('${id}_file').click()">选择文件</button>
+                        <input type="hidden" name="${name}" id="${id}_url" value="${escapeHtml(initialUrl)}" />
+                        <div id="${id}_status" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">支持 jpg/png，最大 2MB</div>
+                    </div>
+                </div>
+            </div>
+        `,
+        init() {
+            const fileInput = document.getElementById(`${id}_file`);
+            const urlInput = document.getElementById(`${id}_url`);
+            const preview = document.getElementById(`${id}_preview`);
+            const status = document.getElementById(`${id}_status`);
+
+            fileInput.addEventListener('change', async () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+                status.textContent = '上传中...';
+                try {
+                    const url = await API.Common.upload(file);
+                    urlInput.value = url;
+                    if (preview.tagName === 'IMG') {
+                        preview.src = url;
+                    } else {
+                        preview.outerHTML = `<img src="${escapeHtml(url)}" class="image-upload-preview" id="${id}_preview" />`;
+                    }
+                    status.textContent = '上传成功';
+                    status.style.color = '#2a7d58';
+                } catch (err) {
+                    status.textContent = '上传失败：' + (err.message || '未知错误');
+                    status.style.color = '#cb4f4f';
+                    fileInput.value = '';
+                }
+            });
+        },
+        getUrl() {
+            return document.getElementById(`${id}_url`)?.value || '';
+        }
+    };
 }
 
-function formatSetmealComboInput(items) {
-    return (items || []).map((item) => `${item.dishId || item.id}*${item.quantity || item.copies || 1}`).join(',');
-}
+function createDishComboSelector({ name, dishes, initialItems = [] }) {
+    const id = `combo_${name}_${Date.now()}`;
+    const initialMap = new Map();
+    initialItems.forEach((item) => {
+        initialMap.set(String(item.dishId || item.id), item.quantity || item.copies || 1);
+    });
 
-function parseSetmealComboInput(text) {
-    return String(text || '')
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .map((item) => {
-            const [dishIdText, copiesText] = item.split('*').map((part) => part.trim());
-            const dishId = Number(dishIdText);
-            const copies = Number(copiesText || '1');
-            const dish = products.find((product) => product.id === dishId);
-            if (!Number.isFinite(dishId) || !dish) return null;
-            return {
-                dishId,
-                name: dish.name,
-                copies: Number.isFinite(copies) && copies > 0 ? copies : 1
-            };
-        })
-        .filter(Boolean);
+    const dishRows = dishes.map((d) => {
+        const isChecked = initialMap.has(String(d.id));
+        const qty = initialMap.get(String(d.id)) || 1;
+        return `
+            <div class="dish-selector-item">
+                <label>
+                    <input type="checkbox" data-dish-id="${d.id}" ${isChecked ? 'checked' : ''} />
+                    <span>${escapeHtml(d.name)}</span>
+                </label>
+                <input type="number" class="dish-qty-input" data-qty-for="${d.id}" value="${qty}" min="1" ${isChecked ? '' : 'disabled'} />
+            </div>
+        `;
+    }).join('');
+
+    return {
+        html: `
+            <div class="form-row">
+                <label class="form-label">菜品组合 <span class="required">*</span></label>
+                <input type="text" id="${id}_search" class="form-input" placeholder="搜索菜品..." style="margin-bottom:8px;" />
+                <div class="dish-selector-list" id="${id}_list">${dishRows}</div>
+                <div class="dish-selector-summary" id="${id}_summary">已选 0 项</div>
+                <input type="hidden" name="${name}" id="${id}_value" />
+            </div>
+        `,
+        init() {
+            const searchInput = document.getElementById(`${id}_search`);
+            const list = document.getElementById(`${id}_list`);
+            const summary = document.getElementById(`${id}_summary`);
+            const valueInput = document.getElementById(`${id}_value`);
+
+            function updateSummary() {
+                const checked = list.querySelectorAll('input[type="checkbox"]:checked');
+                const items = [];
+                checked.forEach((cb) => {
+                    const dishId = cb.dataset.dishId;
+                    const qty = list.querySelector(`[data-qty-for="${dishId}"]`).value;
+                    const name = cb.nextElementSibling.textContent;
+                    items.push(`${escapeHtml(name)} ×${qty}`);
+                });
+                summary.textContent = items.length ? `已选 ${items.length} 项：${items.join('，')}` : '已选 0 项';
+
+                const data = Array.from(checked).map((cb) => ({
+                    dishId: Number(cb.dataset.dishId),
+                    quantity: Number(list.querySelector(`[data-qty-for="${cb.dataset.dishId}"]`).value) || 1
+                }));
+                valueInput.value = JSON.stringify(data);
+            }
+
+            list.addEventListener('change', (e) => {
+                if (e.target.type === 'checkbox') {
+                    const qtyInput = list.querySelector(`[data-qty-for="${e.target.dataset.dishId}"]`);
+                    qtyInput.disabled = !e.target.checked;
+                    if (e.target.checked && qtyInput.value < 1) qtyInput.value = 1;
+                    updateSummary();
+                }
+            });
+
+            list.addEventListener('input', (e) => {
+                if (e.target.classList.contains('dish-qty-input')) {
+                    updateSummary();
+                }
+            });
+
+            searchInput.addEventListener('input', () => {
+                const term = searchInput.value.trim().toLowerCase();
+                list.querySelectorAll('.dish-selector-item').forEach((row) => {
+                    const name = row.querySelector('span').textContent.toLowerCase();
+                    row.style.display = name.includes(term) ? '' : 'none';
+                });
+            });
+
+            updateSummary();
+        },
+        getValue() {
+            const raw = document.getElementById(`${id}_value`)?.value || '[]';
+            try { return JSON.parse(raw); } catch { return []; }
+        },
+        validate() {
+            const val = this.getValue();
+            if (!val || val.length === 0) return '请至少选择一个菜品';
+            return null;
+        }
+    };
 }
 
 function navigateTo(view) {
@@ -1878,47 +2117,64 @@ async function openAddProductDialog() {
         return;
     }
 
-    const name = prompt('请输入商品名称');
-    if (!name || !name.trim()) return;
+    const categoryOptions = dishCategoryOptions.map((c) =>
+        `<option value="${c.id}">${escapeHtml(c.name)}</option>`
+    ).join('');
 
-    const categoryIdInput = prompt(`请输入分类 ID：${buildCategoryHint(dishCategoryOptions)}`, String(dishCategoryOptions[0].id));
-    if (!categoryIdInput) return;
-    const categoryId = Number(categoryIdInput);
-    if (!Number.isFinite(categoryId)) {
-        Toast.show('分类 ID 不合法', 'error');
-        return;
-    }
+    const imageUpload = createImageUploadRow({ name: 'image', label: '商品图片' });
 
-    const priceInput = prompt('请输入商品价格（元）', '18');
-    if (!priceInput) return;
-    const price = Number(priceInput);
-    if (!Number.isFinite(price) || price <= 0) {
-        Toast.show('商品价格必须大于 0', 'error');
-        return;
-    }
+    createFormDialog({
+        title: '新增商品',
+        content: `
+            <div class="form-row">
+                <label class="form-label">商品名称 <span class="required">*</span></label>
+                <input type="text" name="name" class="form-input" placeholder="请输入商品名称" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">商品分类 <span class="required">*</span></label>
+                <select name="categoryId" class="form-select">
+                    <option value="">请选择分类</option>
+                    ${categoryOptions}
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">商品价格（元） <span class="required">*</span></label>
+                <input type="number" name="price" class="form-input" placeholder="请输入价格" step="0.01" min="0.01" />
+            </div>
+            ${imageUpload.html}
+            <div class="form-row">
+                <label class="form-label">商品描述</label>
+                <textarea name="description" class="form-textarea" placeholder="请输入商品描述（可选）"></textarea>
+            </div>
+            <input type="hidden" name="status" value="1" />
+        `,
+        validate(data) {
+            if (!data.name?.trim()) return ['name', '商品名称不能为空'];
+            if (!data.categoryId) return ['categoryId', '请选择商品分类'];
+            const price = Number(data.price);
+            if (!price || price <= 0) return ['price', '商品价格必须大于 0'];
+            return null;
+        },
+        async onSubmit(data) {
+            const payload = {
+                name: data.name.trim(),
+                categoryId: Number(data.categoryId),
+                price: Number(Number(data.price).toFixed(2)),
+                description: (data.description || '').trim(),
+                image: imageUpload.getUrl(),
+                status: 1,
+                flavors: []
+            };
+            await withSubmitting(async () => {
+                await API.Dish.addDish(payload);
+                await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
+                renderApp();
+                Toast.show('新增商品成功', 'success');
+            }, '新增商品失败');
+        }
+    });
 
-    const description = prompt('请输入商品描述（可选）', '') || '';
-    const image = prompt('请输入商品图片 URL（可选）', '') || '';
-
-    try {
-        setSubmitting(true);
-        await API.Dish.addDish({
-            name: name.trim(),
-            categoryId,
-            price: Number(price.toFixed(2)),
-            description: description.trim(),
-            image: image.trim(),
-            status: 1,
-            flavors: []
-        });
-        await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
-        renderApp();
-        Toast.show('新增商品成功', 'success');
-    } catch (error) {
-        Toast.show(`新增商品失败：${error.message || error}`, 'error');
-    } finally {
-        setSubmitting(false);
-    }
+    imageUpload.init();
 }
 
 async function editProduct(id) {
@@ -1927,46 +2183,75 @@ async function editProduct(id) {
 
     try {
         const detail = await API.Dish.getDishById(id);
-        const name = prompt('请输入商品名称', detail.name || '');
-        if (!name || !name.trim()) return;
+        if (!detail) return;
 
-        const categoryIdInput = prompt(`请输入分类 ID：${buildCategoryHint(dishCategoryOptions)}`, String(detail.categoryId || dishCategoryOptions[0]?.id || ''));
-        if (!categoryIdInput) return;
-        const categoryId = Number(categoryIdInput);
-        if (!Number.isFinite(categoryId)) {
+        if (dishCategoryOptions.length === 0) {
             Toast.show('分类 ID 不合法', 'error');
             return;
         }
 
-        const priceInput = prompt('请输入商品价格（元）', String(detail.price || ''));
-        if (!priceInput) return;
-        const price = Number(priceInput);
-        if (!Number.isFinite(price) || price <= 0) {
-            Toast.show('商品价格必须大于 0', 'error');
-            return;
-        }
+        const categoryOptions = dishCategoryOptions.map((c) =>
+            `<option value="${c.id}" ${String(c.id) === String(detail.categoryId) ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+        ).join('');
 
-        const description = prompt('请输入商品描述', detail.description || '') || '';
-        const image = prompt('请输入商品图片 URL', detail.image || '') || '';
+        const imageUpload = createImageUploadRow({ name: 'image', initialUrl: detail.image || '', label: '商品图片' });
 
-        setSubmitting(true);
-        await API.Dish.updateDish({
-            id,
-            name: name.trim(),
-            categoryId,
-            price: Number(price.toFixed(2)),
-            description: description.trim(),
-            image: image.trim(),
-            status: detail.status,
-            flavors: detail.flavors || []
+        createFormDialog({
+            title: '编辑商品',
+            content: `
+                <input type="hidden" name="id" value="${detail.id}" />
+                <div class="form-row">
+                    <label class="form-label">商品名称 <span class="required">*</span></label>
+                    <input type="text" name="name" class="form-input" value="${escapeHtml(detail.name || '')}" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label">商品分类 <span class="required">*</span></label>
+                    <select name="categoryId" class="form-select">
+                        <option value="">请选择分类</option>
+                        ${categoryOptions}
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label class="form-label">商品价格（元） <span class="required">*</span></label>
+                    <input type="number" name="price" class="form-input" value="${detail.price || ''}" step="0.01" min="0.01" />
+                </div>
+                ${imageUpload.html}
+                <div class="form-row">
+                    <label class="form-label">商品描述</label>
+                    <textarea name="description" class="form-textarea">${escapeHtml(detail.description || '')}</textarea>
+                </div>
+                <input type="hidden" name="status" value="${detail.status || 1}" />
+            `,
+            validate(data) {
+                if (!data.name?.trim()) return ['name', '商品名称不能为空'];
+                if (!data.categoryId) return ['categoryId', '请选择商品分类'];
+                const price = Number(data.price);
+                if (!price || price <= 0) return ['price', '商品价格必须大于 0'];
+                return null;
+            },
+            async onSubmit(data) {
+                const payload = {
+                    id: Number(data.id),
+                    name: data.name.trim(),
+                    categoryId: Number(data.categoryId),
+                    price: Number(Number(data.price).toFixed(2)),
+                    description: (data.description || '').trim(),
+                    image: imageUpload.getUrl(),
+                    status: Number(data.status),
+                    flavors: detail.flavors || []
+                };
+                await withSubmitting(async () => {
+                    await API.Dish.updateDish(payload);
+                    await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
+                    renderApp();
+                    Toast.show('商品更新成功', 'success');
+                }, '更新商品失败');
+            }
         });
-        await Promise.all([syncProductsData(true), syncDashboardAndStatisticsData(true)]);
-        renderApp();
-        Toast.show('商品更新成功', 'success');
+
+        imageUpload.init();
     } catch (error) {
-        Toast.show(`更新商品失败：${error.message || error}`, 'error');
-    } finally {
-        setSubmitting(false);
+        Toast.show(`获取商品详情失败：${error.message || error}`, 'error');
     }
 }
 
@@ -2016,55 +2301,74 @@ async function openAddSetmealDialog() {
         return;
     }
 
-    const name = prompt('请输入套餐名称');
-    if (!name || !name.trim()) return;
+    const categoryOptions = setmealCategoryOptions.map((c) =>
+        `<option value="${c.id}">${escapeHtml(c.name)}</option>`
+    ).join('');
 
-    const categoryIdInput = prompt(`请输入套餐分类 ID：${buildCategoryHint(setmealCategoryOptions)}`, String(setmealCategoryOptions[0].id));
-    if (!categoryIdInput) return;
-    const categoryId = Number(categoryIdInput);
-    if (!Number.isFinite(categoryId)) {
-        Toast.show('套餐分类 ID 不合法', 'error');
-        return;
-    }
+    const imageUpload = createImageUploadRow({ name: 'image', label: '套餐图片' });
+    const comboSelector = createDishComboSelector({ name: 'combo', dishes: products, initialItems: [] });
 
-    const priceInput = prompt('请输入套餐价格（元）', '25');
-    if (!priceInput) return;
-    const price = Number(priceInput);
-    if (!Number.isFinite(price) || price <= 0) {
-        Toast.show('套餐价格必须大于 0', 'error');
-        return;
-    }
+    createFormDialog({
+        title: '新增套餐',
+        width: 'lg',
+        content: `
+            <div class="form-row">
+                <label class="form-label">套餐名称 <span class="required">*</span></label>
+                <input type="text" name="name" class="form-input" placeholder="请输入套餐名称" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">套餐分类 <span class="required">*</span></label>
+                <select name="categoryId" class="form-select">
+                    <option value="">请选择分类</option>
+                    ${categoryOptions}
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">套餐价格（元） <span class="required">*</span></label>
+                <input type="number" name="price" class="form-input" placeholder="请输入价格" step="0.01" min="0.01" />
+            </div>
+            ${imageUpload.html}
+            ${comboSelector.html}
+            <div class="form-row">
+                <label class="form-label">套餐描述</label>
+                <textarea name="description" class="form-textarea" placeholder="请输入套餐描述（可选）"></textarea>
+            </div>
+            <input type="hidden" name="status" value="1" />
+        `,
+        validate(data, form) {
+            if (!data.name?.trim()) return ['name', '套餐名称不能为空'];
+            if (!data.categoryId) return ['categoryId', '请选择套餐分类'];
+            const price = Number(data.price);
+            if (!price || price <= 0) return ['price', '套餐价格必须大于 0'];
+            const comboError = comboSelector.validate();
+            if (comboError) return ['combo', comboError];
+            return null;
+        },
+        async onSubmit(data) {
+            const setmealDishes = comboSelector.getValue().map((item) => ({
+                dishId: item.dishId,
+                copies: item.quantity
+            }));
+            const payload = {
+                name: data.name.trim(),
+                categoryId: Number(data.categoryId),
+                price: Number(Number(data.price).toFixed(2)),
+                description: (data.description || '').trim(),
+                image: imageUpload.getUrl(),
+                status: 1,
+                setmealDishes
+            };
+            await withSubmitting(async () => {
+                await API.Setmeal.addSetmeal(payload);
+                await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
+                renderApp();
+                Toast.show('新增套餐成功', 'success');
+            }, '新增套餐失败');
+        }
+    });
 
-    const comboInput = prompt(`请输入套餐菜品组合，格式为 dishId*份数，多个用英文逗号分隔。\n示例：1*1,2*2\n可选菜品：${buildDishComboHint()}`);
-    if (!comboInput) return;
-    const setmealDishes = parseSetmealComboInput(comboInput);
-    if (!setmealDishes.length) {
-        Toast.show('套餐菜品组合不能为空，且菜品 ID 必须属于当前商家', 'error');
-        return;
-    }
-
-    const description = prompt('请输入套餐描述（可选）', '') || '';
-    const image = prompt('请输入套餐图片 URL（可选）', '') || '';
-
-    try {
-        setSubmitting(true);
-        await API.Setmeal.addSetmeal({
-            name: name.trim(),
-            categoryId,
-            price: Number(price.toFixed(2)),
-            description: description.trim(),
-            image: image.trim(),
-            status: 1,
-            setmealDishes
-        });
-        await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
-        renderApp();
-        Toast.show('新增套餐成功', 'success');
-    } catch (error) {
-        Toast.show(`新增套餐失败：${error.message || error}`, 'error');
-    } finally {
-        setSubmitting(false);
-    }
+    imageUpload.init();
+    comboSelector.init();
 }
 
 async function editSetmeal(id) {
@@ -2073,58 +2377,90 @@ async function editSetmeal(id) {
 
     try {
         const detail = await API.Setmeal.getSetmealById(id);
-        const name = prompt('请输入套餐名称', detail.name || '');
-        if (!name || !name.trim()) return;
+        if (!detail) return;
 
-        const categoryIdInput = prompt(`请输入套餐分类 ID：${buildCategoryHint(setmealCategoryOptions)}`, String(detail.categoryId || setmealCategoryOptions[0]?.id || ''));
-        if (!categoryIdInput) return;
-        const categoryId = Number(categoryIdInput);
-        if (!Number.isFinite(categoryId)) {
+        if (setmealCategoryOptions.length === 0) {
             Toast.show('套餐分类 ID 不合法', 'error');
             return;
         }
 
-        const priceInput = prompt('请输入套餐价格（元）', String(detail.price || ''));
-        if (!priceInput) return;
-        const price = Number(priceInput);
-        if (!Number.isFinite(price) || price <= 0) {
-            Toast.show('套餐价格必须大于 0', 'error');
-            return;
-        }
+        const categoryOptions = setmealCategoryOptions.map((c) =>
+            `<option value="${c.id}" ${String(c.id) === String(detail.categoryId) ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+        ).join('');
 
-        const comboInput = prompt(
-            `请输入套餐菜品组合，格式为 dishId*份数，多个用英文逗号分隔。\n示例：1*1,2*2\n可选菜品：${buildDishComboHint()}`,
-            formatSetmealComboInput(detail.setmealDishes || [])
-        );
-        if (!comboInput) return;
+        const imageUpload = createImageUploadRow({ name: 'image', initialUrl: detail.image || '', label: '套餐图片' });
 
-        const setmealDishes = parseSetmealComboInput(comboInput);
-        if (!setmealDishes.length) {
-            Toast.show('套餐菜品组合不能为空', 'error');
-            return;
-        }
+        const initialCombo = (detail.setmealDishes || []).map((d) => ({
+            dishId: d.dishId,
+            quantity: d.copies || 1
+        }));
+        const comboSelector = createDishComboSelector({ name: 'combo', dishes: products, initialItems: initialCombo });
 
-        const description = prompt('请输入套餐描述', detail.description || '') || '';
-        const image = prompt('请输入套餐图片 URL', detail.image || '') || '';
-
-        setSubmitting(true);
-        await API.Setmeal.updateSetmeal({
-            id,
-            name: name.trim(),
-            categoryId,
-            price: Number(price.toFixed(2)),
-            description: description.trim(),
-            image: image.trim(),
-            status: detail.status,
-            setmealDishes
+        createFormDialog({
+            title: '编辑套餐',
+            width: 'lg',
+            content: `
+                <input type="hidden" name="id" value="${detail.id}" />
+                <div class="form-row">
+                    <label class="form-label">套餐名称 <span class="required">*</span></label>
+                    <input type="text" name="name" class="form-input" value="${escapeHtml(detail.name || '')}" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label">套餐分类 <span class="required">*</span></label>
+                    <select name="categoryId" class="form-select">
+                        <option value="">请选择分类</option>
+                        ${categoryOptions}
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label class="form-label">套餐价格（元） <span class="required">*</span></label>
+                    <input type="number" name="price" class="form-input" value="${detail.price || ''}" step="0.01" min="0.01" />
+                </div>
+                ${imageUpload.html}
+                ${comboSelector.html}
+                <div class="form-row">
+                    <label class="form-label">套餐描述</label>
+                    <textarea name="description" class="form-textarea">${escapeHtml(detail.description || '')}</textarea>
+                </div>
+                <input type="hidden" name="status" value="${detail.status || 1}" />
+            `,
+            validate(data) {
+                if (!data.name?.trim()) return ['name', '套餐名称不能为空'];
+                if (!data.categoryId) return ['categoryId', '请选择套餐分类'];
+                const price = Number(data.price);
+                if (!price || price <= 0) return ['price', '套餐价格必须大于 0'];
+                const comboError = comboSelector.validate();
+                if (comboError) return ['combo', comboError];
+                return null;
+            },
+            async onSubmit(data) {
+                const setmealDishes = comboSelector.getValue().map((item) => ({
+                    dishId: item.dishId,
+                    copies: item.quantity
+                }));
+                const payload = {
+                    id: Number(data.id),
+                    name: data.name.trim(),
+                    categoryId: Number(data.categoryId),
+                    price: Number(Number(data.price).toFixed(2)),
+                    description: (data.description || '').trim(),
+                    image: imageUpload.getUrl(),
+                    status: Number(data.status),
+                    setmealDishes
+                };
+                await withSubmitting(async () => {
+                    await API.Setmeal.updateSetmeal(payload);
+                    await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
+                    renderApp();
+                    Toast.show('套餐更新成功', 'success');
+                }, '更新套餐失败');
+            }
         });
-        await Promise.all([syncSetMealsData(true), syncDashboardAndStatisticsData(true)]);
-        renderApp();
-        Toast.show('套餐更新成功', 'success');
+
+        imageUpload.init();
+        comboSelector.init();
     } catch (error) {
-        Toast.show(`更新套餐失败：${error.message || error}`, 'error');
-    } finally {
-        setSubmitting(false);
+        Toast.show(`获取套餐详情失败：${error.message || error}`, 'error');
     }
 }
 
@@ -2168,49 +2504,66 @@ async function openAddEmployeeDialog() {
         return;
     }
 
-    const name = prompt('请输入员工姓名');
-    if (!name || !name.trim()) return;
-
-    const username = prompt('请输入登录用户名');
-    if (!username || !username.trim()) return;
-
-    const phone = prompt('请输入手机号');
-    if (!phone || !phone.trim()) return;
-
-    const accountTypeInput = prompt('请输入账号角色：2=商家管理员，3=商家员工', '3');
-    if (!accountTypeInput) return;
-    const accountType = Number(accountTypeInput);
-    if (![ACCOUNT_TYPES.MERCHANT_ADMIN, ACCOUNT_TYPES.MERCHANT_STAFF].includes(accountType)) {
-        Toast.show('角色只能是 2 或 3', 'error');
-        return;
-    }
-
-    const sex = prompt('请输入性别：1=男，2=女', '1') || '1';
-    const idNumber = prompt('请输入身份证号');
-    if (!idNumber || !idNumber.trim()) {
-        Toast.show('身份证号不能为空', 'error');
-        return;
-    }
-
-    try {
-        setSubmitting(true);
-        await API.Employee.addEmployee({
-            name: name.trim(),
-            username: username.trim(),
-            phone: phone.trim(),
-            sex: sex.trim(),
-            idNumber: idNumber.trim(),
-            status: 1,
-            accountType
-        });
-        await syncEmployeesData(true);
-        renderApp();
-        Toast.show('新增员工成功，默认密码为 123456', 'success');
-    } catch (error) {
-        Toast.show(`新增员工失败：${error.message || error}`, 'error');
-    } finally {
-        setSubmitting(false);
-    }
+    createFormDialog({
+        title: '新增员工',
+        content: `
+            <div class="form-row">
+                <label class="form-label">员工姓名 <span class="required">*</span></label>
+                <input type="text" name="name" class="form-input" placeholder="请输入员工姓名" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">登录用户名 <span class="required">*</span></label>
+                <input type="text" name="username" class="form-input" placeholder="请输入登录用户名" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">手机号码 <span class="required">*</span></label>
+                <input type="tel" name="phone" class="form-input" placeholder="请输入手机号" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">身份证号 <span class="required">*</span></label>
+                <input type="text" name="idNumber" class="form-input" placeholder="请输入身份证号" />
+            </div>
+            <div class="form-row">
+                <label class="form-label">员工性别 <span class="required">*</span></label>
+                <div class="radio-group">
+                    <label class="radio-item"><input type="radio" name="sex" value="1" checked /> 男</label>
+                    <label class="radio-item"><input type="radio" name="sex" value="2" /> 女</label>
+                </div>
+            </div>
+            <div class="form-row">
+                <label class="form-label">账号角色 <span class="required">*</span></label>
+                <div class="radio-group">
+                    <label class="radio-item"><input type="radio" name="accountType" value="${ACCOUNT_TYPES.MERCHANT_ADMIN}" checked /> 商家管理员</label>
+                    <label class="radio-item"><input type="radio" name="accountType" value="${ACCOUNT_TYPES.MERCHANT_STAFF}" /> 商家员工</label>
+                </div>
+            </div>
+            <input type="hidden" name="status" value="1" />
+        `,
+        validate(data) {
+            if (!data.name?.trim()) return ['name', '员工姓名不能为空'];
+            if (!data.username?.trim()) return ['username', '登录用户名不能为空'];
+            if (!data.phone?.trim()) return ['phone', '手机号码不能为空'];
+            if (!data.idNumber?.trim()) return ['idNumber', '身份证号不能为空'];
+            return null;
+        },
+        async onSubmit(data) {
+            const payload = {
+                name: data.name.trim(),
+                username: data.username.trim(),
+                phone: data.phone.trim(),
+                sex: data.sex,
+                idNumber: data.idNumber.trim(),
+                status: 1,
+                accountType: Number(data.accountType)
+            };
+            await withSubmitting(async () => {
+                await API.Employee.addEmployee(payload);
+                await syncEmployeesData(true);
+                renderApp();
+                Toast.show('新增员工成功，默认密码为 123456', 'success');
+            }, '新增员工失败');
+        }
+    });
 }
 
 async function editEmployee(id) {
@@ -2222,48 +2575,70 @@ async function editEmployee(id) {
 
     try {
         const detail = await API.Employee.getEmployeeById(id);
-        const name = prompt('请输入员工姓名', detail.name || '');
-        if (!name || !name.trim()) return;
+        if (!detail) return;
 
-        const username = prompt('请输入登录用户名', detail.username || '');
-        if (!username || !username.trim()) return;
-
-        const phone = prompt('请输入手机号', detail.phone || '');
-        if (!phone || !phone.trim()) return;
-
-        const accountTypeInput = prompt('请输入账号角色：2=商家管理员，3=商家员工', String(detail.accountType || ACCOUNT_TYPES.MERCHANT_STAFF));
-        if (!accountTypeInput) return;
-        const accountType = Number(accountTypeInput);
-        if (![ACCOUNT_TYPES.MERCHANT_ADMIN, ACCOUNT_TYPES.MERCHANT_STAFF].includes(accountType)) {
-            Toast.show('角色只能是 2 或 3', 'error');
-            return;
-        }
-
-        const sex = prompt('请输入性别：1=男，2=女', detail.sex || '1') || '1';
-        const idNumber = prompt('请输入身份证号', detail.idNumber || '');
-        if (!idNumber || !idNumber.trim()) {
-            Toast.show('身份证号不能为空', 'error');
-            return;
-        }
-
-        setSubmitting(true);
-        await API.Employee.updateEmployee({
-            id,
-            name: name.trim(),
-            username: username.trim(),
-            phone: phone.trim(),
-            sex: sex.trim(),
-            idNumber: idNumber.trim(),
-            status: detail.status,
-            accountType
+        createFormDialog({
+            title: '编辑员工',
+            content: `
+                <input type="hidden" name="id" value="${detail.id}" />
+                <div class="form-row">
+                    <label class="form-label">员工姓名 <span class="required">*</span></label>
+                    <input type="text" name="name" class="form-input" value="${escapeHtml(detail.name || '')}" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label">登录用户名</label>
+                    <input type="text" class="form-input" value="${escapeHtml(detail.username || '')}" disabled style="background:#f3f4f6;" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label">手机号码 <span class="required">*</span></label>
+                    <input type="tel" name="phone" class="form-input" value="${escapeHtml(detail.phone || '')}" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label">身份证号 <span class="required">*</span></label>
+                    <input type="text" name="idNumber" class="form-input" value="${escapeHtml(detail.idNumber || '')}" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label">员工性别 <span class="required">*</span></label>
+                    <div class="radio-group">
+                        <label class="radio-item"><input type="radio" name="sex" value="1" ${String(detail.sex) === '1' ? 'checked' : ''} /> 男</label>
+                        <label class="radio-item"><input type="radio" name="sex" value="2" ${String(detail.sex) === '2' ? 'checked' : ''} /> 女</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="form-label">账号角色 <span class="required">*</span></label>
+                    <div class="radio-group">
+                        <label class="radio-item"><input type="radio" name="accountType" value="${ACCOUNT_TYPES.MERCHANT_ADMIN}" ${detail.accountType === ACCOUNT_TYPES.MERCHANT_ADMIN ? 'checked' : ''} /> 商家管理员</label>
+                        <label class="radio-item"><input type="radio" name="accountType" value="${ACCOUNT_TYPES.MERCHANT_STAFF}" ${detail.accountType === ACCOUNT_TYPES.MERCHANT_STAFF ? 'checked' : ''} /> 商家员工</label>
+                    </div>
+                </div>
+            `,
+            validate(data) {
+                if (!data.name?.trim()) return ['name', '员工姓名不能为空'];
+                if (!data.phone?.trim()) return ['phone', '手机号码不能为空'];
+                if (!data.idNumber?.trim()) return ['idNumber', '身份证号不能为空'];
+                return null;
+            },
+            async onSubmit(data) {
+                const payload = {
+                    id: Number(data.id),
+                    name: data.name.trim(),
+                    username: detail.username,
+                    phone: data.phone.trim(),
+                    sex: data.sex,
+                    idNumber: data.idNumber.trim(),
+                    status: detail.status,
+                    accountType: Number(data.accountType)
+                };
+                await withSubmitting(async () => {
+                    await API.Employee.updateEmployee(payload);
+                    await syncEmployeesData(true);
+                    renderApp();
+                    Toast.show('员工信息已更新', 'success');
+                }, '更新员工失败');
+            }
         });
-        await syncEmployeesData(true);
-        renderApp();
-        Toast.show('员工信息已更新', 'success');
     } catch (error) {
-        Toast.show(`更新员工失败：${error.message || error}`, 'error');
-    } finally {
-        setSubmitting(false);
+        Toast.show(`获取员工详情失败：${error.message || error}`, 'error');
     }
 }
 
@@ -2418,6 +2793,8 @@ async function renderApp() {
         } else if (currentView === 'statistics') {
             createDualAxisChart('dualAxisChart', statistics.weekData);
             createHourlyChart('hourlyChart', statistics.hourlyOrders);
+        } else if (currentView === 'platformMerchants') {
+            filterPlatformMerchants();
         }
     }, 80);
 }

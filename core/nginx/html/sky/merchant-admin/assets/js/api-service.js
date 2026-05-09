@@ -135,6 +135,14 @@ class HttpClient {
                 signal: controller.signal
             });
 
+            if (response.status === 401) {
+                throw new Error('未登录或登录已过期，请重新登录');
+            }
+
+            if (!response.ok) {
+                throw new Error(`请求失败（${response.status}）`);
+            }
+
             const result = await response.json();
             if (result.code === 1) {
                 return result.data;
