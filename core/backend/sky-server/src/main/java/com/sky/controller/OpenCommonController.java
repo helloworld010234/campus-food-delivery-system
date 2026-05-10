@@ -3,22 +3,21 @@ package com.sky.controller;
 import com.sky.utils.AliOssUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 @RestController
 @Api(tags = "开放资源接口")
 @Slf4j
+@RequiredArgsConstructor
 public class OpenCommonController {
 
-    @Autowired
-    private AliOssUtil aliOssUtil;
+    private final AliOssUtil aliOssUtil;
 
     @GetMapping({"/common/download", "/api/common/download", "/user/common/download"})
     @ApiOperation("公开文件下载")
@@ -29,17 +28,10 @@ public class OpenCommonController {
         }
 
         try {
-            byte[] bytes = aliOssUtil.download(name);
-            if (bytes == null || bytes.length == 0) {
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-
+            aliOssUtil.downloadStream(name, response.getOutputStream());
             response.setContentType(getContentType(name));
             response.setHeader("Cache-Control", "public,max-age=86400");
-            response.getOutputStream().write(bytes);
-            response.getOutputStream().flush();
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             log.error("开放资源下载失败, name={}", name, ex);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }

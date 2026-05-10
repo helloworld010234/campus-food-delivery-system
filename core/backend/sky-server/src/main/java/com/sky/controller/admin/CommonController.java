@@ -5,8 +5,8 @@ import com.sky.result.Result;
 import com.sky.utils.AliOssUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,8 +16,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -26,16 +24,13 @@ import java.util.UUID;
 @RequestMapping("/admin/common")
 @Api(tags = "通用接口")
 @Slf4j
+@RequiredArgsConstructor
 public class CommonController {
 
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "gif", "webp");
 
-    @Autowired
-    private AliOssUtil aliOssUtil;
+    private final AliOssUtil aliOssUtil;
 
-    /**
-     * 文件上传
-     */
     @PostMapping("/upload")
     @ApiOperation("文件上传")
     public Result<String> upload(MultipartFile file) {
@@ -61,19 +56,14 @@ public class CommonController {
         String objectName = UUID.randomUUID().toString() + "." + suffix;
 
         try {
-            aliOssUtil.upload(file.getBytes(), objectName);
-            String imageUrl = "/api/common/download?name=" + URLEncoder.encode(objectName, StandardCharsets.UTF_8.name());
-            return Result.success(imageUrl);
-        } catch (IOException ex) {
+            String signedUrl = aliOssUtil.upload(file.getBytes(), objectName);
+            return Result.success(signedUrl);
+        } catch (Exception ex) {
             log.error("文件上传失败", ex);
+            return Result.error(MessageConstant.UPLOAD_FAILED);
         }
-        return Result.error(MessageConstant.UPLOAD_FAILED);
     }
 
-    /**
-     * 文件下载（从 OSS 读取）
-     * @param name OSS 对象名，或当前 bucket 的完整 URL
-     */
     @GetMapping("/download")
     @ApiOperation("文件下载")
     public void download(String name, HttpServletResponse response) {
@@ -83,17 +73,10 @@ public class CommonController {
         }
 
         try {
-            byte[] bytes = aliOssUtil.download(name);
-            if (bytes == null || bytes.length == 0) {
-                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-
+            aliOssUtil.downloadStream(name, response.getOutputStream());
             response.setContentType(getContentType(name));
             response.setHeader("Cache-Control", "public,max-age=86400");
-            response.getOutputStream().write(bytes);
-            response.getOutputStream().flush();
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             log.error("文件下载失败, name={}", name, ex);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
