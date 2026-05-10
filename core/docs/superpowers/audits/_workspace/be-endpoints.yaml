@@ -1,0 +1,39 @@
+backend_user_endpoints:
+  - {ctrl: UserController, base: /user/user, method: POST, path: /login, fn: login, line: 47, dto: UserLoginDTO, vo: UserLoginVO, auth: anonymous}
+  - {ctrl: UserController, base: /user/user, method: POST, path: /logout, fn: logout, line: 83, dto: -, vo: String, auth: user_jwt}
+
+  - {ctrl: AddressBookController, base: /user/addressBook, method: GET, path: /list, fn: list, line: 26, dto: -, vo: List<AddressBook>, auth: user_jwt}
+  - {ctrl: AddressBookController, base: /user/addressBook, method: POST, path: '', fn: save, line: 41, dto: AddressBook, vo: -, auth: user_jwt}
+  - {ctrl: AddressBookController, base: /user/addressBook, method: GET, path: /{id}, fn: getById, line: 48, dto: 'PathVar:id', vo: AddressBook, auth: user_jwt}
+  - {ctrl: AddressBookController, base: /user/addressBook, method: PUT, path: '', fn: update, line: 61, dto: AddressBook, vo: -, auth: user_jwt}
+  - {ctrl: AddressBookController, base: /user/addressBook, method: PUT, path: /default, fn: setDefault, line: 74, dto: AddressBook, vo: -, auth: user_jwt}
+  - {ctrl: AddressBookController, base: /user/addressBook, method: DELETE, path: '', fn: deleteById, line: 87, dto: 'Param:id', vo: -, auth: user_jwt}
+  - {ctrl: AddressBookController, base: /user/addressBook, method: GET, path: default, fn: getDefault, line: 97, dto: -, vo: AddressBook, auth: user_jwt, note: 'literal_default_no_slash'}
+
+  - {ctrl: CategoryController, base: /user/category, method: GET, path: /list, fn: list, line: 23, dto: 'Param:type,merchantId', vo: List<Category>, auth: anonymous_or_user_jwt}
+
+  - {ctrl: DishController, base: /user/dish, method: GET, path: /list, fn: list, line: 34, dto: 'Param:categoryId,merchantId', vo: List<DishVO>, auth: anonymous_or_user_jwt}
+
+  - {ctrl: OrderController, base: /user/order, method: POST, path: /submit, fn: submit, line: 29, dto: OrdersSubmitDTO, vo: OrderSubmitVO, auth: user_jwt}
+  - {ctrl: OrderController, base: /user/order, method: PUT, path: /payment, fn: payment, line: 34, dto: OrdersPaymentDTO, vo: OrderPaymentVO, auth: user_jwt}
+  - {ctrl: OrderController, base: /user/order, method: GET, path: /historyOrders, fn: page, line: 39, dto: 'Param:page,pageSize,status', vo: PageResult, auth: user_jwt}
+  - {ctrl: OrderController, base: /user/order, method: GET, path: /queryOrdersCheckStatus, fn: queryOrdersCheckStatus, line: 44, dto: 'Param:page,pageSize,payStatus', vo: PageResult, auth: user_jwt}
+  - {ctrl: OrderController, base: /user/order, method: GET, path: /getEstimatedDeliveryTime, fn: getEstimatedDeliveryTime, line: 49, dto: 'Param:merchantId,shopId,customerAddress', vo: LocalDateTime, auth: user_jwt}
+  - {ctrl: OrderController, base: /user/order, method: GET, path: /orderDetail/{id}, fn: details, line: 54, dto: 'PathVar:id', vo: OrderVO, auth: user_jwt}
+  - {ctrl: OrderController, base: /user/order, method: PUT, path: /cancel/{id}, fn: cancel, line: 59, dto: 'PathVar:id', vo: String, auth: user_jwt}
+  - {ctrl: OrderController, base: /user/order, method: POST, path: /repetition/{id}, fn: repetition, line: 65, dto: 'PathVar:id', vo: String, auth: user_jwt}
+  - {ctrl: OrderController, base: /user/order, method: GET, path: /reminder/{id}, fn: reminder, line: 71, dto: 'PathVar:id', vo: String, auth: user_jwt}
+
+  - {ctrl: SetmealController, base: /user/setmeal, method: GET, path: /list, fn: list, line: 35, dto: 'Param:categoryId,merchantId', vo: List<Setmeal>, auth: anonymous_or_user_jwt}
+  - {ctrl: SetmealController, base: /user/setmeal, method: GET, path: /dish/{id}, fn: dishList, line: 57, dto: 'PathVar:id', vo: List<DishItemVO>, auth: anonymous_or_user_jwt}
+
+  - {ctrl: ShopController, base: /user/shop, method: GET, path: /status, fn: getStatus, line: 26, dto: 'Param:merchantId,shopId', vo: Integer, auth: anonymous}
+  - {ctrl: ShopController, base: /user/shop, method: GET, path: /list, fn: list, line: 40, dto: 'Param:campusId', vo: List<MerchantVO>, auth: anonymous}
+  - {ctrl: ShopController, base: /user/shop, method: GET, path: /getMerchantInfo, fn: getMerchantInfo, line: 45, dto: 'Param:merchantId,shopId', vo: 'Map<String,Object>', auth: anonymous}
+
+  - {ctrl: ShoppingCartController, base: /user/shoppingCart, method: POST, path: /add, fn: add, line: 24, dto: ShoppingCartDTO, vo: -, auth: user_jwt}
+  - {ctrl: ShoppingCartController, base: /user/shoppingCart, method: GET, path: /list, fn: list, line: 30, dto: 'Param:merchantId,shopId', vo: List<ShoppingCart>, auth: user_jwt}
+  - {ctrl: ShoppingCartController, base: /user/shoppingCart, method: DELETE, path: /clean, fn: clean, line: 35, dto: 'Param:merchantId,shopId', vo: -, auth: user_jwt}
+  - {ctrl: ShoppingCartController, base: /user/shoppingCart, method: POST, path: /sub, fn: sub, line: 41, dto: ShoppingCartDTO, vo: -, auth: user_jwt}
+
+total: 29

@@ -1,0 +1,87 @@
+imports_by_file:
+  pages/index/index.js:
+    line: 6-19
+    fns: [userLogin, getCategoryList, dishListByCategoryId, querySetmeaList, getShoppingCartList, newAddShoppingCartAdd, newShoppingCartSub, delShoppingCart, querySetmealDishById, getShopStatus, getMerchantInfo, getMerchantList]
+  pages/details/index.js:
+    line: 2-8
+    fns: [getOrderDetail, repetitionOrder, delShoppingCart, reminderOrder, cancelOrder]
+  pages/order/index.js:
+    line: 1-7
+    fns: [submitOrderSubmit, getAddressBookDefault, queryAddressBookList, getEstimatedDeliveryTime]
+  pages/pay/index.vue:
+    line: 68
+    fns: [paymentOrder, cancelOrder]
+  pages/my/my.vue:
+    line: 49
+    fns: [getOrderPage, repetitionOrder, delShoppingCart]
+  pages/historyOrder/historyOrder.vue:
+    line: 122-128
+    fns: [getOrderPage, repetitionOrder, reminderOrder, delShoppingCart, queryOrdersCheckStatus]
+  pages/address/address.vue:
+    line: 99
+    fns: [queryAddressBookList, putAddressBookDefault]
+  pages/addOrEditAddress/addOrEditAddress.vue:
+    line: 132-137
+    fns: [addAddressBook, delAddressBook, queryAddressBookById, editAddressBook]
+  pages/merchant/index.vue:
+    line: 77
+    fns: [getMerchantList]
+  utils/common.js:
+    line: 1-6
+    fns: [reminderOrder, cancelOrder, delShoppingCart, repetitionOrder]
+  tests/api-merchant-scope.spec.js:
+    line: 11-21
+    fns: [delShoppingCart, dishListByCategoryId, getCategoryList, getEstimatedDeliveryTime, getShoppingCartList, newAddShoppingCartAdd, newShoppingCartSub, querySetmeaList, submitOrderSubmit]
+
+used_set:
+  - addAddressBook
+  - cancelOrder
+  - delAddressBook
+  - delShoppingCart
+  - dishListByCategoryId
+  - editAddressBook
+  - getAddressBookDefault
+  - getCategoryList
+  - getEstimatedDeliveryTime
+  - getMerchantInfo
+  - getMerchantList
+  - getOrderDetail
+  - getOrderPage
+  - getShopStatus
+  - getShoppingCartList
+  - newAddShoppingCartAdd
+  - newShoppingCartSub
+  - paymentOrder
+  - putAddressBookDefault
+  - queryAddressBookById
+  - queryAddressBookList
+  - queryOrdersCheckStatus
+  - querySetmeaList
+  - querySetmealDishById
+  - reminderOrder
+  - repetitionOrder
+  - submitOrderSubmit
+  - userLogin
+
+used_count: 28
+
+# 44 exports - 28 used = 16 dead
+dead_exports:
+  - openTable                  # api.js:4 legacy table flow
+  - getTableState              # api.js:11 legacy table flow
+  - getTableOrderDishList      # api.js:18 legacy table flow
+  - getMoreNorm                # api.js:25 legacy dish flavor
+  - getList                    # api.js:32 legacy dish category (NOT category/list)
+  - getDishDetail              # api.js:39 legacy setmealDishList
+  - getDishList                # api.js:46 legacy dishPageList
+  - addDish                    # api.js:53 legacy order/addDish
+  - delDish                    # api.js:60 legacy decreaseDish
+  - clearOrder                 # api.js:67 legacy cleanShopCart
+  - payOrder                   # api.js:74 legacy table pay
+  - commonDownload             # api.js:105 OSS download (unused)
+  - addShoppingCart            # api.js:113 superseded by newAddShoppingCartAdd
+  - editShoppingCart           # api.js:137 unused
+  - queryOrderUserPage         # api.js:169 likely superseded by getOrderPage
+  - oneOrderAgain              # api.js:233 superseded by repetitionOrder
+
+dead_count: 16

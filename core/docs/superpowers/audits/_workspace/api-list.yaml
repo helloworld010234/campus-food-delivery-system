@@ -1,0 +1,47 @@
+api_list:
+  - {fn: openTable, line: 4, path: /user/table/open/{tableId}/{seatNumber}, method: GET}
+  - {fn: getTableState, line: 11, path: /user/table/tableStatus/{shopId}/{storeId}/{tableId}, method: GET}
+  - {fn: getTableOrderDishList, line: 18, path: /user/order/shopCart/{tableId}, method: GET}
+  - {fn: getMoreNorm, line: 25, path: /user/dish/flavor/{dishId}, method: GET}
+  - {fn: getList, line: 32, path: /user/dish/category, method: GET}
+  - {fn: getDishDetail, line: 39, path: /user/dish/setmealDishList/{setmealId}, method: GET}
+  - {fn: getDishList, line: 46, path: /user/dish/dishPageList/{categoryId}/{type}/{page}/{pageSize}, method: GET}
+  - {fn: addDish, line: 53, path: /user/order/addDish, method: POST}
+  - {fn: delDish, line: 60, path: /user/order/decreaseDish/{tableId}/{dishId}, method: GET}
+  - {fn: clearOrder, line: 67, path: /user/order/cleanShopCart/{tableId}, method: GET}
+  - {fn: payOrder, line: 74, path: /user/order/pay/{tableId}/{jsCode}, method: GET}
+  - {fn: userLogin, line: 81, path: /user/user/login, method: POST}
+  - {fn: getCategoryList, line: 89, path: /user/category/list, method: GET}
+  - {fn: dishListByCategoryId, line: 97, path: /user/dish/list, method: GET}
+  - {fn: commonDownload, line: 105, path: /user/common/download, method: GET}
+  - {fn: addShoppingCart, line: 113, path: /user/shoppingCart, method: POST}
+  - {fn: querySetmeaList, line: 121, path: /user/setmeal/list, method: GET}
+  - {fn: getShoppingCartList, line: 129, path: /user/shoppingCart/list, method: GET}
+  - {fn: editShoppingCart, line: 137, path: /user/shoppingCart, method: PUT}
+  - {fn: newAddShoppingCartAdd, line: 145, path: /user/shoppingCart/add, method: POST}
+  - {fn: newShoppingCartSub, line: 153, path: /user/shoppingCart/sub, method: POST}
+  - {fn: delShoppingCart, line: 161, path: /user/shoppingCart/clean, method: DELETE}
+  - {fn: queryOrderUserPage, line: 169, path: /user/order/userPage, method: GET}
+  - {fn: submitOrderSubmit, line: 177, path: /user/order/submit, method: POST}
+  - {fn: queryAddressBookList, line: 185, path: /user/addressBook/list, method: GET}
+  - {fn: putAddressBookDefault, line: 193, path: /user/addressBook/default, method: PUT}
+  - {fn: addAddressBook, line: 201, path: /user/addressBook, method: POST}
+  - {fn: editAddressBook, line: 209, path: /user/addressBook, method: PUT}
+  - {fn: delAddressBook, line: 217, path: /user/addressBook/?id={id}, method: DELETE}
+  - {fn: queryAddressBookById, line: 225, path: /user/addressBook/{id}, method: GET}
+  - {fn: oneOrderAgain, line: 233, path: /user/order/again, method: POST}
+  - {fn: getAddressBookDefault, line: 241, path: /user/addressBook/default, method: GET}
+  - {fn: querySetmealDishById, line: 248, path: /user/setmeal/dish/{id}, method: GET}
+  - {fn: getShopStatus, line: 255, path: /user/shop/status, method: GET}
+  - {fn: getMerchantInfo, line: 263, path: /user/shop/getMerchantInfo, method: GET}
+  - {fn: getMerchantList, line: 271, path: /user/shop/list, method: GET}
+  - {fn: getOrderPage, line: 279, path: /user/order/historyOrders, method: GET}
+  - {fn: getOrderDetail, line: 287, path: /user/order/orderDetail/{id}, method: GET}
+  - {fn: cancelOrder, line: 293, path: /user/order/cancel/{id}, method: PUT}
+  - {fn: reminderOrder, line: 299, path: /user/order/reminder/{id}, method: GET}
+  - {fn: paymentOrder, line: 305, path: /user/order/payment, method: PUT}
+  - {fn: repetitionOrder, line: 312, path: /user/order/repetition/{id}, method: POST}
+  - {fn: getEstimatedDeliveryTime, line: 319, path: /user/order/getEstimatedDeliveryTime, method: GET}
+  - {fn: queryOrdersCheckStatus, line: 326, path: /user/order/queryOrdersCheckStatus, method: GET}
+
+total: 43
