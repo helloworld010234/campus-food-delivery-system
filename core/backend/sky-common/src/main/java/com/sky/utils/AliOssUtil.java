@@ -1,82 +1,103 @@
 package com.sky.utils;
 
+import com.aliyun.oss.ClientConfiguration;
 import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.OSSException;
 import com.aliyun.oss.model.OSSObject;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import com.sky.exception.OssAuthException;
+import com.sky.exception.OssBucketException;
+import com.sky.exception.OssNetworkException;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Set;
 
-@Data
-@AllArgsConstructor
 @Slf4j
 public class AliOssUtil {
 
-    private String endpoint;
-    private String accessKeyId;
-    private String accessKeySecret;
-    private String bucketName;
+    private static final Set<String> AUTH_ERROR_CODES = Set.of(
+            "InvalidAccessKeyId",
+            "SignatureDoesNotMatch",
+            "AccessDenied"
+    );
 
-    /**
-     * 文件上传
-     *
-     * @param bytes
-     * @param objectName
-     * @return
-     */
-    public String upload(byte[] bytes, String objectName) {
+    private static final String NO_SUCH_BUCKET = "NoSuchBucket";
 
-        // 创建OSSClient实例。
-        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+    private final String endpoint;
+    private final String accessKeyId;
+    private final String accessKeySecret;
+    private final String bucketName;
+    private final int presignedUrlExpireMinutes;
 
-        try {
-            // 创建PutObject请求。
-            ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(bytes));
-        }
-        catch (OSSException oe) {
-            log.error("OSS upload failed: code={}, message={}, requestId={}, hostId={}",
-                    oe.getErrorCode(), oe.getErrorMessage(), oe.getRequestId(), oe.getHostId());
-            throw new RuntimeException("文件上传失败: " + oe.getErrorMessage(), oe);
-        } catch (ClientException ce) {
-            log.error("OSS client error during upload: {}", ce.getMessage(), ce);
-            throw new RuntimeException("文件上传失败", ce);
-        } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
-            }
-        }
+    private final OSS ossClient;
 
-        //文件访问路径规则 https://BucketName.Endpoint/ObjectName
-        StringBuilder stringBuilder = new StringBuilder("https://");
-        stringBuilder
-                .append(bucketName)
-                .append(".")
-                .append(endpoint)
-                .append("/")
-                .append(objectName);
+    public AliOssUtil(String endpoint, String accessKeyId, String accessKeySecret,
+                      String bucketName, int connectionTimeoutMs, int readTimeoutMs,
+                      int maxConnections, int presignedUrlExpireMinutes) {
+        this.endpoint = endpoint;
+        this.accessKeyId = accessKeyId;
+        this.accessKeySecret = accessKeySecret;
+        this.bucketName = bucketName;
+        this.presignedUrlExpireMinutes = presignedUrlExpireMinutes;
 
-        log.info("文件上传到:{}", stringBuilder.toString());
+        ClientConfiguration clientConfig = new ClientConfiguration();
+        clientConfig.setConnectionTimeout(connectionTimeoutMs);
+        clientConfig.setSocketTimeout(readTimeoutMs);
+        clientConfig.setMaxConnections(maxConnections);
+        clientConfig.setMaxErrorRetry(3);
 
-        return stringBuilder.toString();
+        this.ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret, clientConfig);
+        log.info("OSSClient initialized for bucket={}, endpoint={}", bucketName, endpoint);
     }
 
+    @PreDestroy
+    public void shutdown() {
+        if (ossClient != null) {
+            ossClient.shutdown();
+            log.info("OSSClient shutdown");
+        }
+    }
+
+    /**
+     * 上传文件并返回签名访问URL
+     */
+    public String upload(byte[] bytes, String objectName) {
+        try {
+            ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(bytes));
+        } catch (OSSException oe) {
+            log.error("OSS upload failed: code={}, message={}, requestId={}, hostId={}",
+                    oe.getErrorCode(), oe.getErrorMessage(), oe.getRequestId(), oe.getHostId());
+            throw mapOssException("文件上传失败", oe);
+        } catch (ClientException ce) {
+            log.error("OSS client error during upload: {}", ce.getMessage(), ce);
+            throw new OssNetworkException("文件上传失败", ce);
+        }
+
+        String signedUrl = generatePresignedUrl(objectName, presignedUrlExpireMinutes);
+        log.info("文件上传成功: objectName={}, signedUrl={}", objectName, signedUrl);
+        return signedUrl;
+    }
+
+    /**
+     * 生成预签名URL
+     */
     public String generatePresignedUrl(String objectNameOrUrl, long expireMinutes) {
         String objectName = extractObjectName(objectNameOrUrl);
         if (objectName == null || objectName.trim().isEmpty()) {
             return null;
         }
 
-        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
         try {
             long safeExpireMinutes = expireMinutes > 0 ? expireMinutes : 60L;
             Date expiration = new Date(System.currentTimeMillis() + safeExpireMinutes * 60L * 1000L);
@@ -88,18 +109,54 @@ public class AliOssUtil {
         } catch (OSSException | ClientException ex) {
             log.error("OSS presigned url generation failed, objectName={}", objectName, ex);
             return buildHttpsObjectUrl(objectName);
+        }
+    }
+
+    /**
+     * 流式下载到 OutputStream（避免OOM）
+     */
+    public void downloadStream(String objectNameOrUrl, OutputStream outputStream) {
+        String objectName = extractObjectName(objectNameOrUrl);
+        if (objectName == null || objectName.trim().isEmpty()) {
+            throw new OssNetworkException("对象名不能为空");
+        }
+
+        OSSObject ossObject = null;
+        try {
+            ossObject = ossClient.getObject(bucketName, objectName);
+            if (ossObject == null || ossObject.getObjectContent() == null) {
+                throw new OssBucketException("对象不存在: " + objectName);
+            }
+            try (InputStream inputStream = ossObject.getObjectContent()) {
+                byte[] buffer = new byte[8192];
+                int len;
+                while ((len = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, len);
+                }
+                outputStream.flush();
+            }
+        } catch (OSSException oe) {
+            log.error("OSS download failed: code={}, objectName={}", oe.getErrorCode(), objectName);
+            throw mapOssException("文件下载失败", oe);
+        } catch (ClientException ce) {
+            log.error("OSS client error during download: {}", ce.getMessage(), ce);
+            throw new OssNetworkException("文件下载失败", ce);
+        } catch (IOException ioe) {
+            log.error("IO error during OSS download: objectName={}", objectName, ioe);
+            throw new OssNetworkException("文件下载失败", ioe);
         } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
+            if (ossObject != null) {
+                try {
+                    ossObject.close();
+                } catch (IOException e) {
+                    log.warn("Failed to close OSSObject", e);
+                }
             }
         }
     }
 
     /**
-     * 下载对象内容（支持对象名或当前 bucket 的完整 URL）
-     *
-     * @param objectNameOrUrl OSS 对象名或完整 URL
-     * @return 字节数组，失败返回 null
+     * 下载对象内容到字节数组（小文件场景）
      */
     public byte[] download(String objectNameOrUrl) {
         String objectName = extractObjectName(objectNameOrUrl);
@@ -107,10 +164,10 @@ public class AliOssUtil {
             return null;
         }
 
-        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+        OSSObject ossObject = null;
         try {
-            OSSObject ossObject = ossClient.getObject(bucketName, objectName);
-            if (ossObject == null) {
+            ossObject = ossClient.getObject(bucketName, objectName);
+            if (ossObject == null || ossObject.getObjectContent() == null) {
                 return null;
             }
             try (InputStream inputStream = ossObject.getObjectContent()) {
@@ -120,17 +177,18 @@ public class AliOssUtil {
             log.error("OSS download failed, objectName={}", objectName, ex);
             return null;
         } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
+            if (ossObject != null) {
+                try {
+                    ossObject.close();
+                } catch (IOException e) {
+                    log.warn("Failed to close OSSObject", e);
+                }
             }
         }
     }
 
     /**
-     * 从完整 URL 中解析当前 bucket 的对象名；若入参本身是对象名则直接返回
-     *
-     * @param objectNameOrUrl 对象名或完整 URL
-     * @return 对象名，无法解析则返回 null
+     * 从完整 URL 中解析当前 bucket 的对象名
      */
     public String extractObjectName(String objectNameOrUrl) {
         if (objectNameOrUrl == null) {
@@ -162,6 +220,30 @@ public class AliOssUtil {
             log.warn("Failed to parse object name from url: {}", objectNameOrUrl, ex);
             return null;
         }
+    }
+
+    /**
+     * 校验 bucket 是否可访问
+     */
+    public boolean validateConnection() {
+        try {
+            return ossClient.doesBucketExist(bucketName);
+        } catch (OSSException | ClientException ex) {
+            log.error("OSS connection validation failed", ex);
+            return false;
+        }
+    }
+
+    private RuntimeException mapOssException(String prefix, OSSException oe) {
+        String errorCode = oe.getErrorCode();
+        String message = prefix + ": " + oe.getErrorMessage();
+        if (AUTH_ERROR_CODES.contains(errorCode)) {
+            return new OssAuthException(message, oe);
+        }
+        if (NO_SUCH_BUCKET.equals(errorCode)) {
+            return new OssBucketException(message, oe);
+        }
+        return new OssNetworkException(message, oe);
     }
 
     private byte[] readBytes(InputStream inputStream) throws IOException {
