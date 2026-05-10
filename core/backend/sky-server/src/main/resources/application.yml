@@ -33,6 +33,18 @@ logging:
         service: info
         controller: info
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+
 sky:
   jwt:
     admin-secret-key: ${JWT_ADMIN_SECRET_KEY}
@@ -46,6 +58,11 @@ sky:
     access-key-id: ${sky.alioss.access-key-id}
     access-key-secret: ${sky.alioss.access-key-secret}
     bucket-name: ${sky.alioss.bucket-name}
+    connection-timeout-ms: 10000
+    read-timeout-ms: 30000
+    max-connections: 200
+    presigned-url-expire-minutes: 10080
+    startup-validation-enabled: true
   wechat:
     appid: ${WECHAT_APPID}
     secret: ${WECHAT_SECRET}
