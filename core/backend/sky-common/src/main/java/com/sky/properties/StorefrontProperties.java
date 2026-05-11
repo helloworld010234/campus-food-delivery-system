@@ -19,7 +19,7 @@ public class StorefrontProperties {
     /**
      * 门店名称。
      */
-    private String shopName = "苍穹外卖";
+    private String shopName = "杏林食速";
 
     /**
      * 门店地址。
