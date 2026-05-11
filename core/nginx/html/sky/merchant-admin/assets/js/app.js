@@ -560,9 +560,6 @@ async function syncPlatformDashboardData(force = false) {
     if (!shouldSync('platformDashboard', force)) return;
 
     try {
-        const merchantPage = await API.Platform.getMerchantPage({ page: 1, pageSize: 1 });
-        const totalMerchants = toNumber(merchantPage?.total, 0);
-
         const allMerchants = await fetchPagedRecords(
             (params) => API.Platform.getMerchantPage(params),
             {}, 40, 25
@@ -579,6 +576,7 @@ async function syncPlatformDashboardData(force = false) {
             createTime: String(item.createTime || '').split(' ')[0] || '--'
         })));
 
+        const totalMerchants = platformMerchants.length;
         const activeCount = platformMerchants.filter((m) => m.status === 1).length;
         const businessActiveCount = platformMerchants.filter((m) => m.businessStatus === 1).length;
 
@@ -1042,7 +1040,7 @@ function renderPlatformDashboard() {
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
             <div class="xl:col-span-2 bg-white rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">商家状态分布</h3>
-                <div id="merchantStatusChart" style="height: 300px;"></div>
+                <div style="height: 300px;"><canvas id="merchantStatusChart"></canvas></div>
             </div>
             <div class="bg-white rounded-lg p-6">
                 <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">快捷操作</h3>
@@ -2793,6 +2791,8 @@ async function renderApp() {
         } else if (currentView === 'statistics') {
             createDualAxisChart('dualAxisChart', statistics.weekData);
             createHourlyChart('hourlyChart', statistics.hourlyOrders);
+        } else if (currentView === 'platformDashboard') {
+            createMerchantStatusChart('merchantStatusChart', platformStatistics);
         } else if (currentView === 'platformMerchants') {
             filterPlatformMerchants();
         }

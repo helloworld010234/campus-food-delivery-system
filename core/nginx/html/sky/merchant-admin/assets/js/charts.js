@@ -543,6 +543,90 @@ function createDualAxisChart(canvasId, data) {
     });
 }
 
+// 创建商家状态分布图（环形图）
+function createMerchantStatusChart(canvasId, data) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+
+    const disabledCount = Math.max(0, data.totalMerchants - data.activeMerchants);
+
+    return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['正常', '已禁用'],
+            datasets: [{
+                data: [data.activeMerchants, disabledCount],
+                backgroundColor: [CHART_THEME.primary, CHART_THEME.muted],
+                borderColor: 'rgba(255, 255, 255, 0.95)',
+                borderWidth: 2,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        color: CHART_THEME.text,
+                        font: {
+                            size: 12,
+                            weight: '600',
+                            family: CHART_FONT
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                    return {
+                                        text: `${label} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: CHART_THEME.tooltipBg,
+                    titleColor: CHART_THEME.tooltipText,
+                    bodyColor: CHART_THEME.tooltipText,
+                    padding: 12,
+                    titleFont: {
+                        size: 13,
+                        weight: '700',
+                        family: CHART_FONT
+                    },
+                    bodyFont: {
+                        size: 12,
+                        family: CHART_FONT
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                            return `${label}: ${value} 家 (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+    });
+}
+
 // 销毁所有图表
 function destroyAllCharts() {
     if (revenueChart) {
