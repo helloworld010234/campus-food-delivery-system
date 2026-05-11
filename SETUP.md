@@ -1,4 +1,4 @@
-# 苍穹外卖系统 — 开发环境搭建指南 (Windows)
+# 杏林食速系统 — 开发环境搭建指南 (Windows)
 
 > 目标：从零开始，在 Windows 10/11 上搭建可用于开发与联调的全栈环境。
 > 配套文档：[`docs/deployment/index.md`](./docs/deployment/index.md) 部署索引、

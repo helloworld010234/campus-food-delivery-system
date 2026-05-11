@@ -1,4 +1,4 @@
-# 苍穹外卖系统 (Sky Take Out)
+# 杏林食速系统 (Sky Take Out)
 
 校园外卖系统，由三个子系统组成：Java 后端、Vue 管理后台（通过 Nginx 提供静态资源）、uni-app 微信小程序。
 
