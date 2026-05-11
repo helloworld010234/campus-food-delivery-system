@@ -1,8 +1,8 @@
-# 品牌本地化实施计划 — 苍穹外卖 → 杏林食速
+# 品牌本地化实施计划 — 杏林食速 → 杏林食速
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将系统中所有面向用户/管理员的"苍穹外卖"品牌痕迹替换为"杏林食速"，仅替换可见文案与配置，不改动业务逻辑代码、Java 包名、数据库名或模块名。
+**Goal:** 将系统中所有面向用户/管理员的"杏林食速"品牌痕迹替换为"杏林食速"，仅替换可见文案与配置，不改动业务逻辑代码、Java 包名、数据库名或模块名。
 
 **Architecture:** 分4个阶段执行，每阶段只修改明确列出的文件，独立 commit，阶段1（后端）必须通过 Maven 编译验证才能进入后续阶段。所有修改均为字符串替换，无逻辑变更。
 
@@ -14,7 +14,7 @@
 
 | 阶段 | 文件 | 操作 | 说明 |
 |------|------|------|------|
-| 1 | `core/backend/sky-server/src/main/resources/application-dev.yml:18` | 编辑 | `shop-name: 苍穹外卖` → `杏林食速` |
+| 1 | `core/backend/sky-server/src/main/resources/application-dev.yml:18` | 编辑 | `shop-name: 杏林食速` → `杏林食速` |
 | 1 | `core/backend/sky-common/src/main/java/com/sky/properties/StorefrontProperties.java:22` | 编辑 | 默认店铺名 |
 | 1 | `core/backend/sky-server/src/main/java/com/sky/config/WebMvcConfiguration.java:95,97,116,118` | 编辑 | Swagger 标题/描述（4处） |
 | 2 | `core/miniapp/pages/index/file.vue:74` | 编辑 | `name: "苍穹"` → `"杏林食速"` |
@@ -39,7 +39,7 @@
 
 ```
 将第18行：
-    shop-name: 苍穹外卖
+    shop-name: 杏林食速
 替换为：
     shop-name: 杏林食速
 ```
@@ -67,7 +67,7 @@ git commit -m "chore(brand): stage1a - update shop-name in application-dev.yml"
 
 ```java
 将第22行：
-    private String shopName = "苍穹外卖";
+    private String shopName = "杏林食速";
 替换为：
     private String shopName = "杏林食速";
 ```
@@ -95,9 +95,9 @@ git commit -m "chore(brand): stage1b - update default shopName in StorefrontProp
 
 ```java
 将第95-97行：
-                .title("苍穹外卖项目接口文档")
+                .title("杏林食速项目接口文档")
                 .version("2.0")
-                .description("苍穹外卖项目接口文档")
+                .description("杏林食速项目接口文档")
 替换为：
                 .title("杏林食速项目接口文档")
                 .version("2.0")
@@ -108,9 +108,9 @@ git commit -m "chore(brand): stage1b - update default shopName in StorefrontProp
 
 ```java
 将第116-118行：
-                .title("苍穹外卖项目接口文档")
+                .title("杏林食速项目接口文档")
                 .version("2.0")
-                .description("苍穹外卖项目接口文档")
+                .description("杏林食速项目接口文档")
 替换为：
                 .title("杏林食速项目接口文档")
                 .version("2.0")
@@ -120,7 +120,7 @@ git commit -m "chore(brand): stage1b - update default shopName in StorefrontProp
 - [ ] **Step 3: 用 git diff 确认只改了这4处**
 
 Run: `git diff core/backend/sky-server/src/main/java/com/sky/config/WebMvcConfiguration.java`
-Expected: 仅显示4处 `"苍穹外卖项目接口文档"` → `"杏林食速项目接口文档"` 的变更
+Expected: 仅显示4处 `"杏林食速项目接口文档"` → `"杏林食速项目接口文档"` 的变更
 
 - [ ] **Step 4: Stage 并 Commit**
 
@@ -153,7 +153,7 @@ git revert HEAD~2..HEAD --no-edit
 
 1. 确保后端服务已启动（若未启动，执行 `java -jar core/backend/sky-server/target/sky-server-1.0-SNAPSHOT.jar`）
 2. 浏览器访问 `http://localhost:8080/doc.html`
-3. 确认页面顶部显示"杏林食速项目接口文档"（而非"苍穹外卖项目接口文档"）
+3. 确认页面顶部显示"杏林食速项目接口文档"（而非"杏林食速项目接口文档"）
 
 ---
 
@@ -195,26 +195,26 @@ git commit -m "chore(brand): stage2a - update brand name in miniapp file.vue"
 
 ```markdown
 将第1行：
-<!-- ## 苍穹外卖 - 小程序  即（苍穹外卖）
+<!-- ## 杏林食速 - 小程序  即（杏林食速）
 替换为：
 <!-- ## 杏林食速 - 小程序  即（杏林食速）
 
 将第19行：
-#### 苍穹外卖小程序流程说明
+#### 杏林食速小程序流程说明
 替换为：
 #### 杏林食速小程序流程说明
 
 将第20行：
-#### 2022-8-24  把苍穹外卖改成苍穹外卖、换logo
+#### 2022-8-24  把杏林食速改成杏林食速、换logo
 替换为：
-#### 2022-8-24  把苍穹外卖改成杏林食速、换logo
+#### 2022-8-24  把杏林食速改成杏林食速、换logo
 ```
 
 - [ ] **Step 2: 修改 小程序开发流程.md**
 
 ```markdown
 将第1行：
-#### 苍穹外卖小程序流程说明
+#### 杏林食速小程序流程说明
 替换为：
 #### 杏林食速小程序流程说明
 ```
@@ -240,13 +240,13 @@ git commit -m "chore(brand): stage2b - update miniapp docs"
 
 - [ ] **Step 1: 全局替换文档中的品牌名**
 
-Run: `sed -i 's/苍穹外卖/杏林食速/g' D:/sky-delivery/core/nginx/html/sky/merchant-admin/联调指南.md`
-（Windows 下可用 PowerShell: `(Get-Content D:/sky-delivery/core/nginx/html/sky/merchant-admin/联调指南.md) -replace '苍穹外卖', '杏林食速' | Set-Content D:/sky-delivery/core/nginx/html/sky/merchant-admin/联调指南.md`）
+Run: `sed -i 's/杏林食速/杏林食速/g' D:/sky-delivery/core/nginx/html/sky/merchant-admin/联调指南.md`
+（Windows 下可用 PowerShell: `(Get-Content D:/sky-delivery/core/nginx/html/sky/merchant-admin/联调指南.md) -replace '杏林食速', '杏林食速' | Set-Content D:/sky-delivery/core/nginx/html/sky/merchant-admin/联调指南.md`）
 
 - [ ] **Step 2: 用 git diff 确认改动**
 
 Run: `git diff core/nginx/html/sky/merchant-admin/联调指南.md`
-Expected: 所有"苍穹外卖"均替换为"杏林食速"，无其他意外变更
+Expected: 所有"杏林食速"均替换为"杏林食速"，无其他意外变更
 
 - [ ] **Step 3: Stage 并 Commit**
 
@@ -287,7 +287,7 @@ $files = @(
 )
 foreach ($f in $files) {
     if (Test-Path $f) {
-        (Get-Content $f) -replace '苍穹外卖', '杏林食速' | Set-Content $f
+        (Get-Content $f) -replace '杏林食速', '杏林食速' | Set-Content $f
     }
 }
 ```
@@ -322,12 +322,12 @@ git commit -m "chore(brand): stage4 - update project-wide docs"
 **Files:**
 - 无新增/修改文件
 
-- [ ] **Step 1: 扫描核心源文件中是否还有"苍穹外卖"残留**
+- [ ] **Step 1: 扫描核心源文件中是否还有"杏林食速"残留**
 
 Run:
 ```bash
 cd D:/sky-delivery
-grep -r "苍穹外卖" \
+grep -r "杏林食速" \
     --include="*.java" --include="*.yml" --include="*.yaml" \
     --include="*.js" --include="*.vue" --include="*.html" \
     --include="*.md" --include="*.txt" --include="*.properties" \
@@ -338,7 +338,7 @@ grep -r "苍穹外卖" \
 Windows PowerShell:
 ```powershell
 $exclude = @('target', 'worktrees', 'node_modules', '.git')
-Get-ChildItem -Path D:/sky-delivery/core, D:/sky-delivery/scripts, D:/sky-delivery/docs, D:/sky-delivery/.env.example, D:/sky-delivery/README.md, D:/sky-delivery/SETUP.md, D:/sky-delivery/startup-report.md -Recurse -File -Include *.java, *.yml, *.yaml, *.js, *.vue, *.html, *.md, *.txt, *.properties | Where-Object { $exclude -notcontains $_.Directory.Name -and $_.FullName -notmatch 'target|worktrees|node_modules' } | Select-String -Pattern "苍穹外卖"
+Get-ChildItem -Path D:/sky-delivery/core, D:/sky-delivery/scripts, D:/sky-delivery/docs, D:/sky-delivery/.env.example, D:/sky-delivery/README.md, D:/sky-delivery/SETUP.md, D:/sky-delivery/startup-report.md -Recurse -File -Include *.java, *.yml, *.yaml, *.js, *.vue, *.html, *.md, *.txt, *.properties | Where-Object { $exclude -notcontains $_.Directory.Name -and $_.FullName -notmatch 'target|worktrees|node_modules' } | Select-String -Pattern "杏林食速"
 ```
 
 Expected: 无任何匹配结果（或仅出现在 target/、worktrees/、node_modules/ 等排除目录中）
@@ -357,5 +357,5 @@ Expected: BUILD SUCCESS
 - [ ] Swagger 页面标题显示"杏林食速项目接口文档"
 - [ ] 前端管理端登录后顶部品牌名显示"杏林食速"
 - [ ] 小程序首页品牌名显示"杏林食速"
-- [ ] 全局残留扫描核心源文件无"苍穹外卖"
+- [ ] 全局残留扫描核心源文件无"杏林食速"
 - [ ] 数据库连接正常，业务功能无异常
