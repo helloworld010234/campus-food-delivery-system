@@ -1,7 +1,7 @@
 package com.sky.utils;
 
 import com.sky.properties.StorefrontProperties;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -11,13 +11,12 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 @Component
+@RequiredArgsConstructor
 public class StorefrontImageResolver {
 
-    @Autowired
-    private AliOssUtil aliOssUtil;
+    private final AliOssUtil aliOssUtil;
 
-    @Autowired
-    private StorefrontProperties storefrontProperties;
+    private final StorefrontProperties storefrontProperties;
 
     public String resolve(String originImage) {
         if (!StringUtils.hasText(originImage)) {

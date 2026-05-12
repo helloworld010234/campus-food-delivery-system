@@ -1,7 +1,7 @@
 @echo off
 setlocal
-set "NGINX_HOME=D:\sky\sky\nginx"
-set "NGINX_PREFIX=D:/sky/sky/nginx/"
+set "NGINX_HOME=D:\sky-delivery\core\nginx"
+set "NGINX_PREFIX=D:/sky-delivery/core/nginx/"
 set "NGINX_EXE=%NGINX_HOME%\nginx.exe"
 
 if not exist "%NGINX_EXE%" (
@@ -15,7 +15,7 @@ echo [1/3] Sending graceful quit...
 timeout /t 1 >nul
 
 echo [2/3] Force-kill remaining nginx from this path (if any)...
-powershell -NoProfile -Command "$target='D:\sky\sky\nginx\nginx.exe'; Get-CimInstance Win32_Process -Filter \"Name='nginx.exe'\" | Where-Object { $_.ExecutablePath -eq $target } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+powershell -NoProfile -Command "$target='D:\sky-delivery\core\nginx\nginx.exe'; Get-CimInstance Win32_Process -Filter \"Name='nginx.exe'\" | Where-Object { $_.ExecutablePath -eq $target } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
 
 echo [3/3] Verifying port 8081 released...
 netstat -ano | findstr "LISTENING" | findstr ":8081"

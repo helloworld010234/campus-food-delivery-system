@@ -3,8 +3,8 @@ package com.sky.config;
 import com.sky.interceptor.JwtTokenAdminInterceptor;
 import com.sky.interceptor.JwtTokenUserInterceptor;
 import com.sky.json.JacksonObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -27,13 +27,14 @@ import java.util.List;
  */
 @Configuration
 @Slf4j
+@RequiredArgsConstructor
 public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
-    @Autowired
-    private JwtTokenAdminInterceptor jwtTokenAdminInterceptor;
+    private final JwtTokenAdminInterceptor jwtTokenAdminInterceptor;
 
-    @Autowired
-    private JwtTokenUserInterceptor jwtTokenUserInterceptor;
+    private final JwtTokenUserInterceptor jwtTokenUserInterceptor;
+
+    private final com.sky.interceptor.RateLimitInterceptor rateLimitInterceptor;
 
     /**
      * 注册自定义拦截器
@@ -42,10 +43,17 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      */
     protected void addInterceptors(InterceptorRegistry registry) {
         log.info("开始注册自定义拦截器...");
+
+        // 限流拦截器：最先执行，保护登录和下单接口
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/admin/employee/login", "/user/user/login", "/user/order/submit")
+                .order(0);
+
         registry.addInterceptor(jwtTokenAdminInterceptor)
                 .addPathPatterns("/admin/**")
                 .excludePathPatterns("/admin/employee/login")
-                .excludePathPatterns("/admin/common/download");
+                .excludePathPatterns("/admin/common/download")
+                .order(1);
 
         registry.addInterceptor(jwtTokenUserInterceptor)
                 .addPathPatterns("/user/**")
@@ -56,7 +64,8 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .excludePathPatterns("/user/category/list")
                 .excludePathPatterns("/user/dish/list")
                 .excludePathPatterns("/user/setmeal/list")
-                .excludePathPatterns("/user/common/download");
+                .excludePathPatterns("/user/common/download")
+                .order(1);
     }
 
     /**

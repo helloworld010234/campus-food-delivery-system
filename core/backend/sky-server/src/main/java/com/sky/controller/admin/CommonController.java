@@ -1,6 +1,7 @@
 package com.sky.controller.admin;
 
 import com.sky.constant.MessageConstant;
+import com.sky.exception.BaseException;
 import com.sky.result.Result;
 import com.sky.utils.AliOssUtil;
 import io.swagger.annotations.Api;
@@ -58,6 +59,8 @@ public class CommonController {
         try {
             String signedUrl = aliOssUtil.upload(file.getBytes(), objectName);
             return Result.success(signedUrl);
+        } catch (BaseException ex) {
+            throw ex;
         } catch (Exception ex) {
             log.error("文件上传失败", ex);
             return Result.error(MessageConstant.UPLOAD_FAILED);
@@ -73,9 +76,9 @@ public class CommonController {
         }
 
         try {
-            aliOssUtil.downloadStream(name, response.getOutputStream());
             response.setContentType(getContentType(name));
             response.setHeader("Cache-Control", "public,max-age=86400");
+            aliOssUtil.downloadStream(name, response.getOutputStream());
         } catch (Exception ex) {
             log.error("文件下载失败, name={}", name, ex);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

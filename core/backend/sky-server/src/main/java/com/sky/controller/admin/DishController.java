@@ -7,10 +7,8 @@ import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
-import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import io.swagger.models.auth.In;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,12 +22,11 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/admin/dish")
+@RequiredArgsConstructor
 public class DishController {
-    @Autowired
-    private DishService dishService;
+    private final DishService dishService;
 
-    @Autowired
-    private RedisTemplate redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 新增菜品
@@ -120,7 +117,7 @@ public class DishController {
     }
 
     private void cleanCache(String pattern){
-        Set keys = redisTemplate.keys(pattern);
+        Set<String> keys = redisTemplate.keys(pattern);
         redisTemplate.delete(keys);
     }
 }

@@ -5,26 +5,23 @@ import com.sky.mapper.CampusMapper;
 import com.sky.properties.StorefrontProperties;
 import com.sky.service.CampusService;
 import com.sky.support.MultiMerchantSchemaSupport;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class CampusServiceImpl implements CampusService {
 
     private static final String DEFAULT_CAMPUS_STATUS_KEY = "campus:status:default";
 
-    @Autowired
-    private CampusMapper campusMapper;
+    private final CampusMapper campusMapper;
 
-    @Autowired
-    private StorefrontProperties storefrontProperties;
+    private final StorefrontProperties storefrontProperties;
 
-    @Autowired
-    private MultiMerchantSchemaSupport schemaSupport;
+    private final MultiMerchantSchemaSupport schemaSupport;
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public Campus getDefaultCampus() {

@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sky.properties.WeChatProperties;
 import com.sky.service.OrderService;
 import com.wechat.pay.contrib.apache.httpclient.util.AesUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.entity.ContentType;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,13 +22,11 @@ import java.util.HashMap;
 @RestController
 @RequestMapping("/notify")
 @Slf4j
+@RequiredArgsConstructor
 public class PayNotifyController {
-    @Autowired
-    private OrderService orderService;
-    @Autowired
-    private WeChatProperties weChatProperties;
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final OrderService orderService;
+    private final WeChatProperties weChatProperties;
+    private final ObjectMapper objectMapper;
 
     /**
      * 支付成功回调

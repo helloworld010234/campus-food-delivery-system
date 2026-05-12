@@ -9,7 +9,9 @@ import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.ServerEndpointConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,13 +19,19 @@ import java.util.Map;
 
 @Component
 @Slf4j
-public class WebSocketAuthConfigurator extends ServerEndpointConfig.Configurator {
+public class WebSocketAuthConfigurator extends ServerEndpointConfig.Configurator implements ApplicationContextAware {
 
+    private static ApplicationContext applicationContext;
     private static JwtProperties staticJwtProperties;
 
-    @Autowired
-    public void setJwtProperties(JwtProperties jwtProperties) {
-        WebSocketAuthConfigurator.staticJwtProperties = jwtProperties;
+    @Override
+    public void setApplicationContext(ApplicationContext context) throws BeansException {
+        applicationContext = context;
+        try {
+            staticJwtProperties = context.getBean(JwtProperties.class);
+        } catch (Exception ignored) {
+            staticJwtProperties = null;
+        }
     }
 
     @Override
@@ -31,6 +39,14 @@ public class WebSocketAuthConfigurator extends ServerEndpointConfig.Configurator
                                 HandshakeRequest request,
                                 HandshakeResponse response) {
         JwtProperties jwtProperties = staticJwtProperties;
+        if (jwtProperties == null && applicationContext != null) {
+            try {
+                jwtProperties = applicationContext.getBean(JwtProperties.class);
+                staticJwtProperties = jwtProperties;
+            } catch (Exception ignored) {
+                jwtProperties = null;
+            }
+        }
         if (jwtProperties == null) {
             log.error("JwtProperties not initialized — Spring bean injection failed");
             throw new BaseException("Unauthorized");

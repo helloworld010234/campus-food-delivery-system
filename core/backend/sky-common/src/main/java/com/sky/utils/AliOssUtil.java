@@ -1,6 +1,6 @@
 package com.sky.utils;
 
-import com.aliyun.oss.ClientConfiguration;
+import com.aliyun.oss.ClientBuilderConfiguration;
 import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
@@ -51,7 +51,7 @@ public class AliOssUtil {
         this.bucketName = bucketName;
         this.presignedUrlExpireMinutes = presignedUrlExpireMinutes;
 
-        ClientConfiguration clientConfig = new ClientConfiguration();
+        ClientBuilderConfiguration clientConfig = new ClientBuilderConfiguration();
         clientConfig.setConnectionTimeout(connectionTimeoutMs);
         clientConfig.setSocketTimeout(readTimeoutMs);
         clientConfig.setMaxConnections(maxConnections);

@@ -1,5 +1,12 @@
 {
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@dcloudio/uni-ui": "^1.4.14"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
   }
 }

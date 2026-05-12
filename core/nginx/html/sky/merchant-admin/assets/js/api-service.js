@@ -11,6 +11,12 @@ function getWindowLocation() {
 }
 
 function getBackendOrigin() {
+    const location = getWindowLocation();
+    // When served through Nginx proxy (port 8081), use relative paths
+    // so requests go through the same origin and avoid CORS entirely.
+    if (location && location.port === '8081') {
+        return '';
+    }
     return DEFAULT_BACKEND_ORIGIN;
 }
 

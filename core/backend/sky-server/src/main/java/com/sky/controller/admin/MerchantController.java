@@ -6,7 +6,7 @@ import com.sky.entity.Merchant;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.MerchantService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin/merchant")
+@RequiredArgsConstructor
 public class MerchantController {
 
-    @Autowired
-    private MerchantService merchantService;
+    private final MerchantService merchantService;
 
     @PostMapping
     public Result<String> save(@RequestBody MerchantDTO merchantDTO) {

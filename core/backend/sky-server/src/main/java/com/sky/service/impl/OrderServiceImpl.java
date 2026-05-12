@@ -45,8 +45,8 @@ import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import com.sky.websocket.WebSocketServer;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -70,6 +70,7 @@ import java.util.stream.Collectors;
  * fall back to "first enabled merchant" / null-merchant mappers.</p>
  */
 @Service
+@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
     private static final BigDecimal MOCK_PAY_AMOUNT = new BigDecimal("0.01");
@@ -86,54 +87,58 @@ public class OrderServiceImpl implements OrderService {
     private static final String MSG_MERCHANT_DISABLED = "current merchant is unavailable";
     private static final String MSG_MERCHANT_NOT_OPEN = "current merchant is closed";
 
-    @Autowired
-    private OrdersMapper ordersMapper;
+    private final OrdersMapper ordersMapper;
 
-    @Autowired
-    private AddressBookMapper addressBookMapper;
+    private final AddressBookMapper addressBookMapper;
 
-    @Autowired
-    private ShoppingCartMapper shoppingCartMapper;
+    private final ShoppingCartMapper shoppingCartMapper;
 
-    @Autowired
-    private OrderDetailMapper orderDetailMapper;
+    private final OrderDetailMapper orderDetailMapper;
 
-    @Autowired
-    private UserMapper userMapper;
+    private final UserMapper userMapper;
 
-    @Autowired
-    private WeChatPayUtil weChatPayUtil;
+    private final WeChatPayUtil weChatPayUtil;
 
-    @Autowired
-    private WebSocketServer webSocketServer;
+    private final WebSocketServer webSocketServer;
 
-    @Autowired
-    private StorefrontProperties storefrontProperties;
+    private final StorefrontProperties storefrontProperties;
 
-    @Autowired
-    private StorefrontImageResolver storefrontImageResolver;
+    private final StorefrontImageResolver storefrontImageResolver;
 
-    @Autowired
-    private CampusService campusService;
+    private final CampusService campusService;
 
-    @Autowired
-    private MerchantService merchantService;
+    private final MerchantService merchantService;
 
-    @Autowired
-    private EmployeeMapper employeeMapper;
+    private final EmployeeMapper employeeMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private MultiMerchantSchemaSupport schemaSupport;
+    private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
-    @Autowired
-    private MerchantScopeGuard merchantScopeGuard;
+    private final MultiMerchantSchemaSupport schemaSupport;
+
+    private final MerchantScopeGuard merchantScopeGuard;
 
     @Override
     @Transactional
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
+        Long userId = BaseContext.getCurrentId();
+
+        // Redis 分布式锁：防止用户快速双击导致重复下单
+        String lockKey = "order:submit:lock:" + userId;
+        Boolean locked = stringRedisTemplate.opsForValue()
+                .setIfAbsent(lockKey, "1", java.time.Duration.ofSeconds(10));
+        if (!Boolean.TRUE.equals(locked)) {
+            throw new OrderBusinessException("订单提交中，请勿重复操作");
+        }
+        try {
+            return doSubmitOrder(ordersSubmitDTO);
+        } finally {
+            stringRedisTemplate.delete(lockKey);
+        }
+    }
+
+    private OrderSubmitVO doSubmitOrder(OrdersSubmitDTO ordersSubmitDTO) {
         Long merchantId = resolvePrivateMerchantId(
                 ordersSubmitDTO.getMerchantId(), ordersSubmitDTO.getShopId(), "order submit");
 
@@ -246,6 +251,13 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderBusinessException(MSG_ORDER_PAID);
         }
 
+        // MOCK PAYMENT BRANCH — DO NOT REMOVE
+        // This branch bypasses real WeChat Pay and immediately marks the order as
+        // paid. It is required for:
+        //   1. Local development (no real WeChat credentials available)
+        //   2. CI test runs (deterministic, fast, no external network dependency)
+        //   3. Demo / staging environments without WeChat merchant setup
+        // Controlled by storefront.mock-payment property (default false in prod).
         if (Boolean.TRUE.equals(storefrontProperties.getMockPayment())) {
             paySuccess(ordersPaymentDTO.getOrderNumber());
             return OrderPaymentVO.builder().mockPay(Boolean.TRUE).build();

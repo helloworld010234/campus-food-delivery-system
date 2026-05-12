@@ -1,8 +1,8 @@
 package com.sky.support;
 
 import com.sky.properties.StorefrontProperties;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -15,13 +15,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class MultiMerchantSchemaSupport {
 
-    @Autowired
-    private DataSource dataSource;
+    private final DataSource dataSource;
 
-    @Autowired
-    private StorefrontProperties storefrontProperties;
+    private final StorefrontProperties storefrontProperties;
 
     private final Map<String, Boolean> tableCache = new ConcurrentHashMap<>();
     private final Map<String, Boolean> columnCache = new ConcurrentHashMap<>();

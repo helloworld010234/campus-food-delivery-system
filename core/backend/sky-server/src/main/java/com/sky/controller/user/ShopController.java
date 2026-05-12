@@ -5,7 +5,7 @@ import com.sky.service.CampusService;
 import com.sky.service.MerchantService;
 import com.sky.vo.MerchantVO;
 import com.sky.result.Result;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,13 +16,12 @@ import java.util.Map;
 
 @RestController("userShopController")
 @RequestMapping("/user/shop")
+@RequiredArgsConstructor
 public class ShopController {
 
-    @Autowired
-    private CampusService campusService;
+    private final CampusService campusService;
 
-    @Autowired
-    private MerchantService merchantService;
+    private final MerchantService merchantService;
 
     @GetMapping("/status")
     public Result<Integer> getStatus(Long merchantId, Long shopId) {

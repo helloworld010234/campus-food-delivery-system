@@ -12,7 +12,7 @@ import com.sky.vo.BusinessDataVO;
 import com.sky.vo.DishOverViewVO;
 import com.sky.vo.OrderOverViewVO;
 import com.sky.vo.SetmealOverViewVO;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -41,22 +41,18 @@ import java.util.Map;
  * an identical merchant scope.
  */
 @Service
+@RequiredArgsConstructor
 public class WorkspaceServiceImpl implements WorkspaceService {
 
-    @Autowired
-    private OrdersMapper orderMapper;
+    private final OrdersMapper orderMapper;
 
-    @Autowired
-    private UserMapper userMapper;
+    private final UserMapper userMapper;
 
-    @Autowired
-    private DishMapper dishMapper;
+    private final DishMapper dishMapper;
 
-    @Autowired
-    private SetmealMapper setmealMapper;
+    private final SetmealMapper setmealMapper;
 
-    @Autowired
-    private MerchantScopeGuard merchantScopeGuard;
+    private final MerchantScopeGuard merchantScopeGuard;
 
     @Override
     public BusinessDataVO getBusinessData(LocalDateTime begin, LocalDateTime end) {

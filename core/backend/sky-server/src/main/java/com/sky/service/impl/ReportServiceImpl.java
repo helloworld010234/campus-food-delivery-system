@@ -12,11 +12,11 @@ import com.sky.vo.OrderReportVO;
 import com.sky.vo.SalesTop10ReportVO;
 import com.sky.vo.TurnoverReportVO;
 import com.sky.vo.UserReportVO;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.servlet.ServletOutputStream;
@@ -55,19 +55,16 @@ import java.util.stream.Collectors;
  * for their store.
  */
 @Service
+@RequiredArgsConstructor
 public class ReportServiceImpl implements ReportService {
 
-    @Autowired
-    private OrdersMapper ordersMapper;
+    private final OrdersMapper ordersMapper;
 
-    @Autowired
-    private UserMapper userMapper;
+    private final UserMapper userMapper;
 
-    @Autowired
-    private WorkspaceService workspaceService;
+    private final WorkspaceService workspaceService;
 
-    @Autowired
-    private MerchantScopeGuard merchantScopeGuard;
+    private final MerchantScopeGuard merchantScopeGuard;
 
     @Override
     public TurnoverReportVO getTurnoverStatistics(LocalDate begin, LocalDate end) {

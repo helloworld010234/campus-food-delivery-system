@@ -21,33 +21,28 @@ import com.sky.utils.MerchantScopeUtils;
 import com.sky.utils.StorefrontImageResolver;
 import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class SetmealServiceImpl implements SetmealService {
 
-    @Autowired
-    private SetmealMapper setmealMapper;
+    private final SetmealMapper setmealMapper;
 
-    @Autowired
-    private DishMapper dishMapper;
+    private final DishMapper dishMapper;
 
-    @Autowired
-    private SetmealDishMapper setmealDishMapper;
+    private final SetmealDishMapper setmealDishMapper;
 
-    @Autowired
-    private CategoryMapper categoryMapper;
+    private final CategoryMapper categoryMapper;
 
-    @Autowired
-    private StorefrontImageResolver storefrontImageResolver;
+    private final StorefrontImageResolver storefrontImageResolver;
 
-    @Autowired
-    private MultiMerchantSchemaSupport schemaSupport;
+    private final MultiMerchantSchemaSupport schemaSupport;
 
     @Override
     public PageResult pageQuery(SetmealPageQueryDTO setmealPageQueryDTO) {

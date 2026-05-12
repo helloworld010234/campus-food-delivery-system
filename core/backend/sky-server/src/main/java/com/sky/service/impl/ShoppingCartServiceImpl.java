@@ -13,8 +13,8 @@ import com.sky.security.MerchantScopeGuard;
 import com.sky.service.ShoppingCartService;
 import com.sky.support.MultiMerchantSchemaSupport;
 import com.sky.utils.StorefrontImageResolver;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,6 +30,7 @@ import java.util.List;
  * {@link MerchantScopeGuard}; this service must not invent its own scope rules.</p>
  */
 @Service
+@RequiredArgsConstructor
 public class ShoppingCartServiceImpl implements ShoppingCartService {
 
     private static final String OP_ADD = "shopping cart add";
@@ -37,23 +38,17 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     private static final String OP_LIST = "shopping cart list";
     private static final String OP_CLEAN = "shopping cart clean";
 
-    @Autowired
-    private ShoppingCartMapper shoppingCartMapper;
+    private final ShoppingCartMapper shoppingCartMapper;
 
-    @Autowired
-    private DishMapper dishMapper;
+    private final DishMapper dishMapper;
 
-    @Autowired
-    private SetmealMapper setmealMapper;
+    private final SetmealMapper setmealMapper;
 
-    @Autowired
-    private StorefrontImageResolver storefrontImageResolver;
+    private final StorefrontImageResolver storefrontImageResolver;
 
-    @Autowired
-    private MultiMerchantSchemaSupport schemaSupport;
+    private final MultiMerchantSchemaSupport schemaSupport;
 
-    @Autowired
-    private MerchantScopeGuard merchantScopeGuard;
+    private final MerchantScopeGuard merchantScopeGuard;
 
     @Override
     public void addShoppingCart(ShoppingCartDTO shoppingCartDTO) {

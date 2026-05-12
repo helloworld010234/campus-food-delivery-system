@@ -4,7 +4,7 @@ import com.sky.dto.ShoppingCartDTO;
 import com.sky.entity.ShoppingCart;
 import com.sky.result.Result;
 import com.sky.service.ShoppingCartService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,10 +16,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/user/shoppingCart")
+@RequiredArgsConstructor
 public class ShoppingCartController {
 
-    @Autowired
-    private ShoppingCartService shoppingCartService;
+    private final ShoppingCartService shoppingCartService;
 
     @PostMapping("/add")
     public Result<String> add(@RequestBody ShoppingCartDTO shoppingCartDTO) {

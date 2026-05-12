@@ -295,9 +295,7 @@ export default {
     }
   },
   onShow() {
-    if (this.token()) {
-      this.init(this.routeMerchantId)
-    }
+    this.init(this.routeMerchantId)
   },
   methods: {
     ...mapMutations([
@@ -585,18 +583,21 @@ export default {
         return
       }
 
-      uni.showModal({
-        title: "温馨提示",
-        content: "请先完成微信登录后再开始点餐。",
-        showCancel: false,
-        success: async (result) => {
-          if (!result.confirm) {
-            return
-          }
-
-          await this.triggerLoginFlow()
-        },
-      })
+      // Anonymous browse mode: public endpoints (shop, category, dish,
+      // setmeal) are now allow-listed in request.js.  The login modal is
+      // deferred until the user attempts a private action (add to cart,
+      // submit order, etc.) which still triggers a 401 redirect.
+      //
+      // If the user arrived with a merchantId in the URL, preserve it so
+      // the anonymous browse context survives across 401 -> login recovery.
+      if (this.routeMerchantId) {
+        this.setCurrentMerchantId(this.routeMerchantId)
+        this.setStoreInfo({
+          ...this.storeInfo(),
+          merchantId: this.routeMerchantId,
+          shopId: this.routeMerchantId,
+        })
+      }
     },
     async init(merchantId = "") {
       const activeMerchantId = this.updateMerchantContext(
@@ -609,10 +610,12 @@ export default {
       try {
         await this.loadMerchantList()
 
+        // Public browse: these calls are allow-listed in request.js and
+        // will succeed without a token.  Private calls (cart, order) are
+        // still gated by the login interceptor.
         await Promise.all([
           this.getShopInfo(activeMerchantId),
           this.getMerchantInfo(activeMerchantId),
-          this.getTableOrderDishListes(activeMerchantId),
           getCategoryList(this.buildMerchantParams({}, activeMerchantId))
             .then(async (res) => {
               if (res && res.code === 1) {
@@ -635,6 +638,11 @@ export default {
               this.dishListItems = []
             }),
         ])
+
+        // Private: cart requires login.  Silently skip when anonymous.
+        if (this.token()) {
+          await this.getTableOrderDishListes(activeMerchantId)
+        }
       } finally {
         this.endMenuLoading()
         this.menuLoadedAtLeastOnce = true
@@ -834,6 +842,21 @@ export default {
       }
     },
     async addDishAction(payload, form) {
+      // Private action guard: adding to cart requires login.
+      if (!this.token()) {
+        uni.showModal({
+          title: "温馨提示",
+          content: "请先完成微信登录后再开始点餐。",
+          showCancel: false,
+          success: async (result) => {
+            if (result.confirm) {
+              await this.triggerLoginFlow()
+            }
+          },
+        })
+        return false
+      }
+
       const normalized = this.normalizeActionPayload(payload, form)
       const item = normalized.item
       const actionForm = normalized.form || ""

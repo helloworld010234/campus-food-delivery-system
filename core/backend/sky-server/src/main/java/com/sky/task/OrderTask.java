@@ -2,8 +2,8 @@ package com.sky.task;
 
 import com.sky.entity.Orders;
 import com.sky.mapper.OrdersMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,9 +20,9 @@ import java.util.List;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class OrderTask {
-    @Autowired
-    private OrdersMapper ordersMapper;
+    private final OrdersMapper ordersMapper;
 
     /**
      * 处理超时订单(每分钟触发一次)

@@ -28,9 +28,9 @@ public class OpenCommonController {
         }
 
         try {
-            aliOssUtil.downloadStream(name, response.getOutputStream());
             response.setContentType(getContentType(name));
             response.setHeader("Cache-Control", "public,max-age=86400");
+            aliOssUtil.downloadStream(name, response.getOutputStream());
         } catch (Exception ex) {
             log.error("开放资源下载失败, name={}", name, ex);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

@@ -11,7 +11,7 @@ import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -22,10 +22,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController("adminOrder")
 @RequestMapping("/admin/order")
 @Api(tags = "订单管理接口")
+@RequiredArgsConstructor
 public class OrderController {
 
-    @Autowired
-    private OrderService orderService;
+    private final OrderService orderService;
 
     /**
      * 订单搜索

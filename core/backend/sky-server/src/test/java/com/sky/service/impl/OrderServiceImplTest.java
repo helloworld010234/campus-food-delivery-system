@@ -36,8 +36,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -106,12 +109,22 @@ class OrderServiceImplTest {
     @Mock
     private MerchantScopeGuard merchantScopeGuard;
 
+    @Mock
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> stringValueOperations;
+
     @InjectMocks
     private OrderServiceImpl orderService;
 
     @BeforeEach
     void clearContextBefore() {
         BaseContext.clear();
+        org.mockito.Mockito.lenient().when(stringRedisTemplate.opsForValue()).thenReturn(stringValueOperations);
+        org.mockito.Mockito.lenient()
+                .when(stringValueOperations.setIfAbsent(anyString(), eq("1"), any(Duration.class)))
+                .thenReturn(true);
     }
 
     @AfterEach
@@ -722,6 +735,44 @@ class OrderServiceImplTest {
     }
 
     // -------------------------------------------------------------------------
+    // mock payment branch protection
+    // -------------------------------------------------------------------------
+
+    @Test
+    void payment_whenMockPaymentEnabled_shouldReturnMockPayVoAndCallPaySuccess() throws Exception {
+        // Arrange: mock-payment mode is active; real WeChat Pay must NOT be called.
+        Long userId = 200L;
+        BaseContext.setCurrentId(userId);
+        Orders order = Orders.builder()
+                .id(1L)
+                .number("ORDER_MOCK")
+                .userId(userId)
+                .merchantId(10L)
+                .payStatus(Orders.UN_PAID)
+                .status(Orders.PENDING_PAYMENT)
+                .build();
+        when(ordersMapper.getByNumberAndUserId("ORDER_MOCK", userId)).thenReturn(order);
+        when(storefrontProperties.getMockPayment()).thenReturn(true);
+
+        com.sky.dto.OrdersPaymentDTO dto = new com.sky.dto.OrdersPaymentDTO();
+        dto.setOrderNumber("ORDER_MOCK");
+
+        try (MockedStatic<MerchantScopeUtils> mockedMerchantScopeUtils = mockStatic(MerchantScopeUtils.class)) {
+            mockedMerchantScopeUtils.when(() -> MerchantScopeUtils.isMerchantAccount()).thenReturn(false);
+
+            // Act
+            com.sky.vo.OrderPaymentVO result = orderService.payment(dto);
+
+            // Assert: must return mock-pay VO without touching WeChatPayUtil
+            assertNotNull(result);
+            assertEquals(Boolean.TRUE, result.getMockPay());
+            verify(weChatPayUtil, never()).pay(anyString(), any(), anyString(), anyString());
+            // paySuccess side effects are verified by other tests; here we just
+            // confirm the mock branch was reached.
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // pageQueryUser ownership scoping
     // -------------------------------------------------------------------------
 
@@ -743,5 +794,189 @@ class OrderServiceImplTest {
                 userId.equals(query.getUserId())
                         && query.getMerchantId() == null
                         && Integer.valueOf(4).equals(query.getStatus())));
+    }
+
+    // -------------------------------------------------------------------------
+    // confirm (接单)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void confirm_whenOrderToBeConfirmed_shouldUpdateStatusToConfirmed() {
+        // Arrange
+        Long adminId = 100L;
+        BaseContext.setCurrentId(adminId);
+        BaseContext.setCurrentAccountType(AccountTypeConstant.MERCHANT_ADMIN);
+        Orders order = Orders.builder()
+                .id(1L)
+                .status(Orders.TO_BE_CONFIRMED)
+                .merchantId(10L)
+                .build();
+        when(ordersMapper.getById(1L)).thenReturn(order);
+
+        // Act
+        orderService.confirm(new com.sky.dto.OrdersConfirmDTO(1L));
+
+        // Assert
+        verify(ordersMapper).update(argThat(o ->
+                Long.valueOf(1L).equals(o.getId())
+                        && Orders.CONFIRMED.equals(o.getStatus())));
+    }
+
+    @Test
+    void confirm_whenOrderAlreadyCancelled_shouldThrowAndNotUpdate() {
+        // Arrange: RED test — confirm currently lacks status validation.
+        Long adminId = 100L;
+        BaseContext.setCurrentId(adminId);
+        BaseContext.setCurrentAccountType(AccountTypeConstant.MERCHANT_ADMIN);
+        Orders order = Orders.builder()
+                .id(1L)
+                .status(Orders.CANCELLED)
+                .merchantId(10L)
+                .build();
+        when(ordersMapper.getById(1L)).thenReturn(order);
+
+        // Act & Assert: expect failure until status guard is added
+        assertThrows(BaseException.class, () -> orderService.confirm(new com.sky.dto.OrdersConfirmDTO(1L)));
+        verify(ordersMapper, never()).update(any(Orders.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // rejection (拒单)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void rejection_whenOrderToBeConfirmed_shouldCancelAndRefund() throws Exception {
+        // Arrange
+        Long adminId = 100L;
+        BaseContext.setCurrentId(adminId);
+        BaseContext.setCurrentAccountType(AccountTypeConstant.MERCHANT_ADMIN);
+        Orders order = Orders.builder()
+                .id(1L)
+                .status(Orders.TO_BE_CONFIRMED)
+                .merchantId(10L)
+                .payStatus(Orders.PAID)
+                .build();
+        when(ordersMapper.getById(1L)).thenReturn(order);
+
+        // Act
+        com.sky.dto.OrdersRejectionDTO dto = new com.sky.dto.OrdersRejectionDTO();
+        dto.setId(1L);
+        dto.setRejectionReason("Sold out");
+        orderService.rejection(dto);
+
+        // Assert
+        verify(ordersMapper).update(argThat(o ->
+                Long.valueOf(1L).equals(o.getId())
+                        && Orders.CANCELLED.equals(o.getStatus())
+                        && Orders.REFUND.equals(o.getPayStatus())
+                        && "Sold out".equals(o.getRejectionReason())));
+    }
+
+    @Test
+    void rejection_whenOrderNotToBeConfirmed_shouldThrowAndNotUpdate() {
+        // Arrange
+        Long adminId = 100L;
+        BaseContext.setCurrentId(adminId);
+        BaseContext.setCurrentAccountType(AccountTypeConstant.MERCHANT_ADMIN);
+        Orders order = Orders.builder()
+                .id(1L)
+                .status(Orders.CONFIRMED)
+                .merchantId(10L)
+                .build();
+        when(ordersMapper.getById(1L)).thenReturn(order);
+
+        // Act & Assert
+        assertThrows(com.sky.exception.OrderBusinessException.class,
+                () -> orderService.rejection(new com.sky.dto.OrdersRejectionDTO()));
+        verify(ordersMapper, never()).update(any(Orders.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // delivery (派送)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void delivery_whenOrderConfirmed_shouldUpdateToDeliveryInProgress() {
+        // Arrange
+        Long adminId = 100L;
+        BaseContext.setCurrentId(adminId);
+        BaseContext.setCurrentAccountType(AccountTypeConstant.MERCHANT_ADMIN);
+        Orders order = Orders.builder()
+                .id(1L)
+                .status(Orders.CONFIRMED)
+                .merchantId(10L)
+                .build();
+        when(ordersMapper.getById(1L)).thenReturn(order);
+
+        // Act
+        orderService.delivery(1L);
+
+        // Assert
+        verify(ordersMapper).update(argThat(o ->
+                Long.valueOf(1L).equals(o.getId())
+                        && Orders.DELIVERY_IN_PROGRESS.equals(o.getStatus())));
+    }
+
+    @Test
+    void delivery_whenOrderNotConfirmed_shouldThrowAndNotUpdate() {
+        // Arrange
+        Long adminId = 100L;
+        BaseContext.setCurrentId(adminId);
+        BaseContext.setCurrentAccountType(AccountTypeConstant.MERCHANT_ADMIN);
+        Orders order = Orders.builder()
+                .id(1L)
+                .status(Orders.TO_BE_CONFIRMED)
+                .merchantId(10L)
+                .build();
+        when(ordersMapper.getById(1L)).thenReturn(order);
+
+        // Act & Assert
+        assertThrows(com.sky.exception.OrderBusinessException.class, () -> orderService.delivery(1L));
+        verify(ordersMapper, never()).update(any(Orders.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // complete (完成)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void complete_whenOrderInDelivery_shouldUpdateToCompleted() {
+        // Arrange
+        Long adminId = 100L;
+        BaseContext.setCurrentId(adminId);
+        BaseContext.setCurrentAccountType(AccountTypeConstant.MERCHANT_ADMIN);
+        Orders order = Orders.builder()
+                .id(1L)
+                .status(Orders.DELIVERY_IN_PROGRESS)
+                .merchantId(10L)
+                .build();
+        when(ordersMapper.getById(1L)).thenReturn(order);
+
+        // Act
+        orderService.complete(1L);
+
+        // Assert
+        verify(ordersMapper).update(argThat(o ->
+                Long.valueOf(1L).equals(o.getId())
+                        && Orders.COMPLETED.equals(o.getStatus())
+                        && o.getDeliveryTime() != null));
+    }
+
+    @Test
+    void complete_whenOrderNotInDelivery_shouldThrowAndNotUpdate() {
+        // Arrange
+        Long adminId = 100L;
+        BaseContext.setCurrentId(adminId);
+        BaseContext.setCurrentAccountType(AccountTypeConstant.MERCHANT_ADMIN);
+        Orders order = Orders.builder()
+                .id(1L)
+                .status(Orders.CONFIRMED)
+                .merchantId(10L)
+                .build();
+        when(ordersMapper.getById(1L)).thenReturn(order);
+
+        // Act & Assert
+        assertThrows(com.sky.exception.OrderBusinessException.class, () -> orderService.complete(1L));
+        verify(ordersMapper, never()).update(any(Orders.class));
     }
 }

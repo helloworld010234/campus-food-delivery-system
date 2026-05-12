@@ -4,8 +4,8 @@ sky:
     host: ${DB_HOST:localhost}
     port: ${DB_PORT:3306}
     database: ${DB_DATABASE:sky_take_out}
-    username: ${DB_USERNAME:}
-    password: ${DB_PASSWORD:}
+    username: root
+    password: root
 
   alioss:
     access-key-id: ${OSS_ACCESS_KEY_ID:YOUR_ACCESS_KEY_ID}

@@ -14,26 +14,23 @@ import com.sky.result.PageResult;
 import com.sky.service.CategoryService;
 import com.sky.support.MultiMerchantSchemaSupport;
 import com.sky.utils.MerchantScopeUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
 
-    @Autowired
-    private CategoryMapper categoryMapper;
+    private final CategoryMapper categoryMapper;
 
-    @Autowired
-    private DishMapper dishMapper;
+    private final DishMapper dishMapper;
 
-    @Autowired
-    private SetmealMapper setmealMapper;
+    private final SetmealMapper setmealMapper;
 
-    @Autowired
-    private MultiMerchantSchemaSupport schemaSupport;
+    private final MultiMerchantSchemaSupport schemaSupport;
 
     @Override
     public void save(CategoryDTO categoryDTO) {

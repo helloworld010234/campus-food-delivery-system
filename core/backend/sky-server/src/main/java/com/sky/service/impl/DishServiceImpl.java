@@ -20,8 +20,8 @@ import com.sky.support.MultiMerchantSchemaSupport;
 import com.sky.utils.MerchantScopeUtils;
 import com.sky.utils.StorefrontImageResolver;
 import com.sky.vo.DishVO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,25 +29,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class DishServiceImpl implements DishService {
 
-    @Autowired
-    private DishMapper dishMapper;
+    private final DishMapper dishMapper;
 
-    @Autowired
-    private SetmealDishMapper setMealDishMapper;
+    private final SetmealDishMapper setMealDishMapper;
 
-    @Autowired
-    private DishFlavorMapper dishFlavorMapper;
+    private final DishFlavorMapper dishFlavorMapper;
 
-    @Autowired
-    private CategoryMapper categoryMapper;
+    private final CategoryMapper categoryMapper;
 
-    @Autowired
-    private StorefrontImageResolver storefrontImageResolver;
+    private final StorefrontImageResolver storefrontImageResolver;
 
-    @Autowired
-    private MultiMerchantSchemaSupport schemaSupport;
+    private final MultiMerchantSchemaSupport schemaSupport;
 
     @Override
     @Transactional

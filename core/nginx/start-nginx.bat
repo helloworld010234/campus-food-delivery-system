@@ -1,7 +1,7 @@
 @echo off
 setlocal
-set "NGINX_HOME=D:\sky\sky\nginx"
-set "NGINX_PREFIX=D:/sky/sky/nginx/"
+set "NGINX_HOME=D:\sky-delivery\core\nginx"
+set "NGINX_PREFIX=D:/sky-delivery/core/nginx/"
 set "NGINX_EXE=%NGINX_HOME%\nginx.exe"
 
 if not exist "%NGINX_EXE%" (

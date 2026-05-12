@@ -2,7 +2,7 @@ package com.sky.controller.admin;
 
 import com.sky.result.Result;
 import com.sky.service.CampusService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController("adminShopController")
 @RequestMapping("/admin/shop")
+@RequiredArgsConstructor
 public class ShopController {
 
-    @Autowired
-    private CampusService campusService;
+    private final CampusService campusService;
 
     @GetMapping("/status")
     public Result<Integer> getStatus() {

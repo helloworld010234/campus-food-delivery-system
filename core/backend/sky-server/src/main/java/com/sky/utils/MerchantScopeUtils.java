@@ -13,7 +13,7 @@ public final class MerchantScopeUtils {
         if (isMerchantAccount()) {
             Long currentMerchantId = getRequiredCurrentMerchantId();
             if (requestedMerchantId != null && !currentMerchantId.equals(requestedMerchantId)) {
-                throw new BaseException("鏃犳潈璁块棶鍏朵粬鍟嗘埛鏁版嵁");
+                throw new BaseException("无权访问其他商户数据");
             }
             return currentMerchantId;
         }
@@ -23,7 +23,7 @@ public final class MerchantScopeUtils {
     public static Long resolveRequiredMerchantId(Long requestedMerchantId) {
         Long merchantId = resolveQueryMerchantId(requestedMerchantId);
         if (merchantId == null) {
-            throw new BaseException("褰撳墠鎿嶄綔蹇呴』鎸囧畾鍟嗘埛");
+            throw new BaseException("当前操作必须指定商户");
         }
         return merchantId;
     }
@@ -34,7 +34,7 @@ public final class MerchantScopeUtils {
         }
         Long currentMerchantId = getRequiredCurrentMerchantId();
         if (merchantId != null && !currentMerchantId.equals(merchantId)) {
-            throw new BaseException("鏃犳潈璁块棶鍏朵粬鍟嗘埛鏁版嵁");
+            throw new BaseException("无权访问其他商户数据");
         }
     }
 
