@@ -58,8 +58,6 @@ import HeadInfo from "./components/headInfo.vue";
 import OrderInfo from "./components/orderInfo.vue";
 import OrderList from "./components/orderList.vue";
 
-const DEFAULT_NICKNAME = "同学"
-
 export default {
   data() {
     return {
@@ -102,7 +100,7 @@ export default {
     }
     const baseUserInfo = this.$store.state.baseUserInfo || {};
     this.psersonUrl = baseUserInfo.avatarUrl || "/static/imgDefault.png";
-    this.nickName = baseUserInfo.nickName || DEFAULT_NICKNAME;
+    this.nickName = baseUserInfo.nickName || (this.$store.getters.defaultNickname || "同学");
     this.gender = String(baseUserInfo.gender || 0);
     this.phoneNumber = this.$store.state.shopPhone || "";
     this.getList();

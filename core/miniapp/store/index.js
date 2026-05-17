@@ -21,6 +21,9 @@ const state = {
   arrivals: "",
   remarkData: "",
   addressData: {},
+  config: {
+    defaultNickname: "同学",
+  },
 };
 
 const store = new Vuex.Store({
@@ -83,6 +86,15 @@ const store = new Vuex.Store({
     setGender(state, gender) {
       state.gender = gender;
     },
+    setConfig(state, provider) {
+      state.config = { ...state.config, ...provider };
+    },
+  },
+  getters: {
+    defaultNickname: (state) =>
+      state.config && state.config.defaultNickname
+        ? state.config.defaultNickname
+        : "同学",
   },
   actions: {},
 });
