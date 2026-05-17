@@ -62,7 +62,7 @@ export default {
   data() {
     return {
       psersonUrl: "/static/imgDefault.png",
-      nickName: "微信用户",
+      nickName: "",
       gender: "0",
       phoneNumber: "",
       recentOrdersList: [],
@@ -100,7 +100,7 @@ export default {
     }
     const baseUserInfo = this.$store.state.baseUserInfo || {};
     this.psersonUrl = baseUserInfo.avatarUrl || "/static/imgDefault.png";
-    this.nickName = baseUserInfo.nickName || "微信用户";
+    this.nickName = baseUserInfo.nickName || "同学";
     this.gender = String(baseUserInfo.gender || 0);
     this.phoneNumber = this.$store.state.shopPhone || "";
     this.getList();
