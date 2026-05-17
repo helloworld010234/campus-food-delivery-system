@@ -75,7 +75,7 @@ export default {
 			// styleType: 'button',
 			textTip: '',
 			showConfirm: false,
-			phoneData: '15200000001',
+			phoneData: '',
 			toDate: null,
 			tomorrowStart: null,
 			newDate: null,
@@ -332,8 +332,16 @@ export default {
 		},
 		// 拨打电话
 		call() {
+			const phone = this.phoneData || (this.$store.state && this.$store.state.shopPhone) || ''
+			if (!phone) {
+				uni.showToast({
+					title: '暂无商家电话',
+					icon: 'none'
+				})
+				return
+			}
 			uni.makePhoneCall({
-				phoneNumber: '114' //仅为示例
+				phoneNumber: phone
 			})
 		},
 		// // 联系商家进行取消弹层

@@ -25,6 +25,9 @@ import {
   withMerchantScope,
 } from "../../utils/merchant.js"
 
+// Fallback location (Beijing) used only when user denies location permission.
+const FALLBACK_LOCATION = "116.481488,39.990464"
+
 export default {
   data() {
     return {
@@ -49,9 +52,9 @@ export default {
       orderDishNumber: 0,
       orderDishPrice: 0,
       params: {
-        shopId: "f3deb",
-        storeId: "1282344676983062530",
-        tableId: "1282346960773238786",
+        shopId: "",
+        storeId: "",
+        tableId: "",
       },
       rightIdAndType: {},
       phoneData: "",
@@ -279,7 +282,7 @@ export default {
     },
   },
   onReady() {
-    this.getMenuItemTop().catch(() => {})
+    this.getMenuItemTop().catch(() => { /* DOM measurement failure safe to ignore */ })
   },
   onLoad(options) {
     this.routeMerchantId = normalizeMerchantId(options && options.merchantId)
@@ -324,6 +327,12 @@ export default {
       "currentMerchantId",
       "storeInfo",
     ]),
+    notifyError(message) {
+      uni.showToast({
+        title: message,
+        icon: "none",
+      })
+    },
     getResolvedMerchantId(merchantId = "") {
       const currentShopInfo =
         typeof this.shopInfo === "function" ? this.shopInfo() : {}
@@ -417,7 +426,9 @@ export default {
           }
           return list
         }
-      } catch (error) {}
+      } catch (error) {
+        this.notifyError("加载商户列表失败，请检查网络")
+      }
 
       this.setMerchantList([])
       return []
@@ -460,7 +471,7 @@ export default {
     },
     async resolveLoginLocation() {
       if (process.env.NODE_ENV === "development") {
-        return "116.481488,39.990464"
+        return FALLBACK_LOCATION
       }
 
       try {
@@ -470,12 +481,12 @@ export default {
         })
 
         if (err || !location) {
-          return "116.481488,39.990464"
+          return FALLBACK_LOCATION
         }
 
         return `${location.longitude},${location.latitude}`
       } catch (error) {
-        return "116.481488,39.990464"
+        return FALLBACK_LOCATION
       }
     },
     async handleUserLogin(jsCode) {
@@ -632,7 +643,8 @@ export default {
               this.dishListData = []
               this.dishListItems = []
             })
-            .catch(() => {
+            .catch((err) => {
+              this.notifyError("加载菜单分类失败")
               this.typeListData = []
               this.dishListData = []
               this.dishListItems = []
@@ -654,10 +666,10 @@ export default {
       }
 
       this.typeIndex = index
-      this.leftMenuStatus(index).catch(() => {})
+      this.leftMenuStatus(index).catch(() => { /* DOM measurement failure safe to ignore */ })
       this.getDishListDataes(params, index)
       if (this.arr.length === 0) {
-        this.getMenuItemTop().catch(() => {})
+        this.getMenuItemTop().catch(() => { /* DOM measurement failure safe to ignore */ })
       }
     },
     getElRect(elClass, dataVal, retry = 0) {
@@ -754,7 +766,8 @@ export default {
                   : []
               }
             })
-            .catch(() => {
+            .catch((err) => {
+              this.notifyError("加载套餐失败")
               this.dishListData = []
             })
         } else {
@@ -770,7 +783,8 @@ export default {
                   : []
               }
             })
-            .catch(() => {
+            .catch((err) => {
+              this.notifyError("加载菜品失败")
               this.dishListData = []
             })
         }
@@ -778,7 +792,7 @@ export default {
         this.typeIndex = index
         this.setOrderNum()
         this.$nextTick(() => {
-          this.getMenuItemTop().catch(() => {})
+          this.getMenuItemTop().catch(() => { /* DOM measurement failure safe to ignore */ })
         })
       } finally {
         this.endMenuLoading()
@@ -792,7 +806,9 @@ export default {
             this.setShopStatus(res.data)
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          this.notifyError("获取店铺状态失败")
+        })
     },
     async getMerchantInfo(merchantId = "") {
       await getMerchantInfo(this.buildMerchantParams({}, merchantId))
@@ -802,7 +818,9 @@ export default {
             this.applyMerchantInfo(res.data)
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          this.notifyError("获取商家信息失败")
+        })
     },
     getNewImage(image) {
       return `${baseUrl}/common/download?name=${image}`
@@ -816,7 +834,9 @@ export default {
             this.computOrderInfo()
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          this.notifyError("获取购物车失败")
+        })
     },
     goOrder() {
       uni.navigateTo({
@@ -937,7 +957,9 @@ export default {
             this.flavorDataes = []
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          this.notifyError("加购失败，请重试")
+        })
     },
     addShop(item) {
       this.dishDetailes = item
@@ -1003,7 +1025,9 @@ export default {
             this.getDishListDataes(this.rightIdAndType, this.typeIndex)
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          this.notifyError("减少数量失败")
+        })
     },
     clearCardOrder() {
       delShoppingCart(this.buildMerchantParams())
@@ -1012,7 +1036,9 @@ export default {
           this.getTableOrderDishListes()
           this.getDishListDataes(this.rightIdAndType, this.typeIndex)
         })
-        .catch(() => {})
+        .catch((err) => {
+          this.notifyError("清空购物车失败")
+        })
     },
     openDetailHandle(item) {
       this.dishDetailes = item
@@ -1026,7 +1052,9 @@ export default {
               this.dishMealData = Array.isArray(res.data) ? res.data : []
             }
           })
-          .catch(() => {})
+          .catch((err) => {
+            this.notifyError("加载套餐详情失败")
+          })
       } else {
         this.openDetailPop = true
       }
