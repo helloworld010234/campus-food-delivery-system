@@ -25,9 +25,6 @@ import {
   withMerchantScope,
 } from "../../utils/merchant.js"
 
-// Fallback location (Beijing) used only when user denies location permission.
-const FALLBACK_LOCATION = "116.481488,39.990464"
-
 export default {
   data() {
     return {
@@ -327,11 +324,14 @@ export default {
       "currentMerchantId",
       "storeInfo",
     ]),
-    notifyError(message) {
+    showErrorToast(message, err) {
       uni.showToast({
         title: message,
         icon: "none",
       })
+      if (err) {
+        console.error("[MiniApp Error]", message, err)
+      }
     },
     getResolvedMerchantId(merchantId = "") {
       const currentShopInfo =
@@ -345,7 +345,11 @@ export default {
       )
     },
     buildMerchantParams(params = {}, merchantId = "") {
-      return withMerchantScope(params, merchantId || this.getResolvedMerchantId())
+      const resolved = merchantId || this.getResolvedMerchantId()
+      if (!resolved) {
+        console.error("[MerchantScope] merchantId is empty, API may fail")
+      }
+      return withMerchantScope(params, resolved)
     },
     updateMerchantContext(merchantId, extras = {}) {
       const normalizedMerchantId = normalizeMerchantId(merchantId)
@@ -427,7 +431,7 @@ export default {
           return list
         }
       } catch (error) {
-        this.notifyError("加载商户列表失败，请检查网络")
+        this.showErrorToast("加载商户列表失败，请检查网络", error)
       }
 
       this.setMerchantList([])
@@ -471,7 +475,7 @@ export default {
     },
     async resolveLoginLocation() {
       if (process.env.NODE_ENV === "development") {
-        return FALLBACK_LOCATION
+        return "116.481488,39.990464"
       }
 
       try {
@@ -481,12 +485,12 @@ export default {
         })
 
         if (err || !location) {
-          return FALLBACK_LOCATION
+          return ""
         }
 
         return `${location.longitude},${location.latitude}`
       } catch (error) {
-        return FALLBACK_LOCATION
+        return ""
       }
     },
     async handleUserLogin(jsCode) {
@@ -644,7 +648,7 @@ export default {
               this.dishListItems = []
             })
             .catch((err) => {
-              this.notifyError("加载菜单分类失败")
+              this.showErrorToast("加载菜单分类失败", err)
               this.typeListData = []
               this.dishListData = []
               this.dishListItems = []
@@ -767,7 +771,7 @@ export default {
               }
             })
             .catch((err) => {
-              this.notifyError("加载套餐失败")
+              this.showErrorToast("加载套餐失败", err)
               this.dishListData = []
             })
         } else {
@@ -784,7 +788,7 @@ export default {
               }
             })
             .catch((err) => {
-              this.notifyError("加载菜品失败")
+              this.showErrorToast("加载菜品失败", err)
               this.dishListData = []
             })
         }
@@ -807,7 +811,7 @@ export default {
           }
         })
         .catch((err) => {
-          this.notifyError("获取店铺状态失败")
+          this.showErrorToast("获取店铺状态失败", err)
         })
     },
     async getMerchantInfo(merchantId = "") {
@@ -819,7 +823,7 @@ export default {
           }
         })
         .catch((err) => {
-          this.notifyError("获取商家信息失败")
+          this.showErrorToast("获取商家信息失败", err)
         })
     },
     getNewImage(image) {
@@ -835,7 +839,7 @@ export default {
           }
         })
         .catch((err) => {
-          this.notifyError("获取购物车失败")
+          this.showErrorToast("获取购物车失败", err)
         })
     },
     goOrder() {
@@ -897,6 +901,11 @@ export default {
       }
 
       this.openMoreNormPop = false
+      const prevTablewareNumber = this.tablewareNumber
+      const prevDishNumber = this.dishDetailes && typeof this.dishDetailes.dishNumber === "number"
+        ? this.dishDetailes.dishNumber
+        : null
+
       this.tablewareNumber++
       if (this.dishDetailes && typeof this.dishDetailes.dishNumber === "number") {
         this.dishDetailes.dishNumber++
@@ -955,10 +964,20 @@ export default {
             this.getTableOrderDishListes()
             this.getDishListDataes(this.rightIdAndType, this.typeIndex)
             this.flavorDataes = []
+          } else {
+            this.tablewareNumber = prevTablewareNumber
+            if (this.dishDetailes && prevDishNumber !== null) {
+              this.dishDetailes.dishNumber = prevDishNumber
+            }
+            this.showErrorToast(res.msg || "加购失败", null)
           }
         })
         .catch((err) => {
-          this.notifyError("加购失败，请重试")
+          this.tablewareNumber = prevTablewareNumber
+          if (this.dishDetailes && prevDishNumber !== null) {
+            this.dishDetailes.dishNumber = prevDishNumber
+          }
+          this.showErrorToast("加购失败，请重试", err)
         })
     },
     addShop(item) {
@@ -973,6 +992,11 @@ export default {
       if (!item) {
         return false
       }
+
+      const prevTablewareNumber = this.tablewareNumber
+      const prevDishNumber = this.dishDetailes && typeof this.dishDetailes.dishNumber === "number"
+        ? this.dishDetailes.dishNumber
+        : null
 
       this.tablewareNumber--
       if (this.dishDetailes && typeof this.dishDetailes.dishNumber === "number") {
@@ -1023,10 +1047,20 @@ export default {
           if (res.code === 1) {
             this.getTableOrderDishListes()
             this.getDishListDataes(this.rightIdAndType, this.typeIndex)
+          } else {
+            this.tablewareNumber = prevTablewareNumber
+            if (this.dishDetailes && prevDishNumber !== null) {
+              this.dishDetailes.dishNumber = prevDishNumber
+            }
+            this.showErrorToast(res.msg || "减少数量失败", null)
           }
         })
         .catch((err) => {
-          this.notifyError("减少数量失败")
+          this.tablewareNumber = prevTablewareNumber
+          if (this.dishDetailes && prevDishNumber !== null) {
+            this.dishDetailes.dishNumber = prevDishNumber
+          }
+          this.showErrorToast("减少数量失败", err)
         })
     },
     clearCardOrder() {
@@ -1037,7 +1071,7 @@ export default {
           this.getDishListDataes(this.rightIdAndType, this.typeIndex)
         })
         .catch((err) => {
-          this.notifyError("清空购物车失败")
+          this.showErrorToast("清空购物车失败", err)
         })
     },
     openDetailHandle(item) {
@@ -1053,7 +1087,7 @@ export default {
             }
           })
           .catch((err) => {
-            this.notifyError("加载套餐详情失败")
+            this.showErrorToast("加载套餐详情失败", err)
           })
       } else {
         this.openDetailPop = true
