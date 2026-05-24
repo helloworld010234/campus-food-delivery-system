@@ -80,7 +80,7 @@ core/paper_work/
 core/paper-output/**/*.json
 core/paper-output/**/*.md
 core/paper-output/**/*.py
-!core/paper-output/**/*.docx
+core/paper-output/**/*.docx
 core/paper-output/**/mermaid/
 core/paper-output/**/figures/
 core/paper-output/**/screenshots/
