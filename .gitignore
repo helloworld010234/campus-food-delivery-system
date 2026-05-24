@@ -89,10 +89,10 @@ core/paper-output/**/qa_render_*/
 core/paper-output/**/format_rebuild_work/
 core/paper-output/**/~$*.docx
 core/paper-output/**/__pycache__/
-core/paper-context/aigc/
-core/paper-context/**/*.json
+core/paper-context/
 core/thesis-ai-standard/
-!core/paper-context/source-draft.docx
+core/天天开心.docx
+thesis.docx
 
 # Cleanup artifacts
 .cleanup-backup/
