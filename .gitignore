@@ -1,1 +1,123 @@
+# Git worktrees
 .worktrees/
+
+# =============================================================================
+# Java / Maven
+# =============================================================================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.jar
+*.war
+*.ear
+*.class
+*.exec
+*.original
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# =============================================================================
+# Node.js / Miniapp
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm-cache/
+.npm/
+.unpackage/dist/
+unpackage/dist/
+*.js.map
+
+# =============================================================================
+# Logs
+# =============================================================================
+*.log
+logs/
+run-logs/
+
+# =============================================================================
+# IDE
+# =============================================================================
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# OS
+# =============================================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================================================
+# Temporary files
+# =============================================================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+
+# =============================================================================
+# Paper / Thesis temporary build artifacts
+# Keep all .docx final deliverables, ignore transient build files
+# =============================================================================
+core/paper_work/
+core/paper-output/**/*.json
+core/paper-output/**/*.md
+core/paper-output/**/*.py
+!core/paper-output/**/*.docx
+core/paper-output/**/mermaid/
+core/paper-output/**/figures/
+core/paper-output/**/screenshots/
+core/paper-output/**/rendered/
+core/paper-output/**/qa_render_*/
+core/paper-output/**/format_rebuild_work/
+core/paper-output/**/~$*.docx
+core/paper-output/**/__pycache__/
+core/paper-context/aigc/
+core/paper-context/**/*.json
+core/thesis-ai-standard/
+!core/paper-context/source-draft.docx
+
+# Cleanup artifacts
+.cleanup-backup/
+GIT_CLEANUP_PLAN.md
+
+# =============================================================================
+# Nginx runtime
+# =============================================================================
+nginx/logs/
+nginx/html/sky/merchant-admin/favicon.ico
+
+# =============================================================================
+# Environment / Secrets
+# =============================================================================
+.env.local
+.env.*.local
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =============================================================================
+# Other
+# =============================================================================
+.deps/

@@ -100,7 +100,7 @@ export default {
     }
     const baseUserInfo = this.$store.state.baseUserInfo || {};
     this.psersonUrl = baseUserInfo.avatarUrl || "/static/imgDefault.png";
-    this.nickName = baseUserInfo.nickName || (this.$store.getters.defaultNickname || "同学");
+    this.nickName = baseUserInfo.nickName || this.$store.getters.defaultNickname;
     this.gender = String(baseUserInfo.gender || 0);
     this.phoneNumber = this.$store.state.shopPhone || "";
     this.getList();

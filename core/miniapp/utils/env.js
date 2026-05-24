@@ -1,6 +1,6 @@
 // Environment configuration for miniapp API base URL.
 const ENV_CONFIG = {
-  development: "http://localhost:8080",
+  development: "http://10.6.242.59:8081",
   production: "http://8.136.34.168",
 };
 
@@ -23,6 +23,17 @@ const resolveOverrideBaseUrl = () => {
 
 const normalizeBaseUrl = (url) => String(url || "").replace(/\/+$/, "");
 
+const resolveRuntimeBaseUrl = () => {
+  if (typeof uni === "undefined" || typeof uni.getStorageSync !== "function") {
+    return "";
+  }
+
+  return uni.getStorageSync("SKY_API_BASE_URL") || "";
+};
+
+const runtimeBaseUrl = normalizeBaseUrl(resolveRuntimeBaseUrl());
 const overrideBaseUrl = normalizeBaseUrl(resolveOverrideBaseUrl());
 export const baseUrl =
-  overrideBaseUrl || normalizeBaseUrl(ENV_CONFIG[env] || ENV_CONFIG.development);
+  runtimeBaseUrl ||
+  overrideBaseUrl ||
+  normalizeBaseUrl(ENV_CONFIG[env] || ENV_CONFIG.development);

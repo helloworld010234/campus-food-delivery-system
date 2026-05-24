@@ -334,8 +334,17 @@ export default {
       this.reportClientError({ message, errMsg: err && err.message, stack: err && err.stack, page: "pages/index/index" })
     },
     reportClientError(payload) {
-      // TODO: POST to backend /common/client-log when available
+      // Simple dedup: suppress identical messages within 5s window
+      const key = `${payload.message}_${payload.page || ""}`
+      this._reportedErrors = this._reportedErrors || new Map()
+      if (this._reportedErrors.has(key)) {
+        return
+      }
+      this._reportedErrors.set(key, Date.now())
+      setTimeout(() => this._reportedErrors.delete(key), 5000)
+
       console.error("[ClientLog]", payload)
+      // TODO: POST to backend /common/client-log when available
     },
     getResolvedMerchantId(merchantId = "") {
       const currentShopInfo =
@@ -474,6 +483,15 @@ export default {
       })
     },
     async resolveLoginLocation() {
+      // Dev fallback for simulator / CI environments without GPS
+      try {
+        if (typeof __DEV__ !== "undefined" && __DEV__) {
+          return "116.4074,39.9042"
+        }
+      } catch (e) {
+        /* ignore __DEV__ check failure */
+      }
+
       try {
         const [err, location] = await uni.getLocation({
           type: "gcj02",
@@ -533,12 +551,14 @@ export default {
             })
             return this.init(defaultMerchantId)
           }
+          throw new Error(success.msg || "登录失败")
         })
-        .catch(() => {
+        .catch((err) => {
           uni.showToast({
             title: "登录失败，请稍后重试",
             icon: "none",
           })
+          throw err
         })
     },
     beginMenuLoading() {
@@ -638,7 +658,6 @@ export default {
       this.beginMenuLoading()
       this.menuLoadedAtLeastOnce = false
       this.resetMerchantScopedView()
-      const initErrors = []
       try {
         await this.loadMerchantList()
 
@@ -650,13 +669,9 @@ export default {
         // Public browse: these calls are allow-listed in request.js and
         // will succeed without a token.  Private calls (cart, order) are
         // still gated by the login interceptor.
-        const results = await Promise.allSettled([
-          this.getShopInfo(activeMerchantId).catch((err) => {
-            initErrors.push("获取店铺状态失败")
-          }),
-          this.getMerchantInfo(activeMerchantId).catch((err) => {
-            initErrors.push("获取商家信息失败")
-          }),
+        await Promise.allSettled([
+          this.getShopInfo(activeMerchantId).catch(() => { /* getShopInfo already toasts */ }),
+          this.getMerchantInfo(activeMerchantId).catch(() => { /* getMerchantInfo already toasts */ }),
           getCategoryList(this.buildMerchantParams({}, activeMerchantId))
             .then(async (res) => {
               if (res && res.code === 1) {
@@ -674,16 +689,12 @@ export default {
               this.dishListItems = []
             })
             .catch((err) => {
-              initErrors.push("加载菜单分类失败")
+              this.showErrorToast("加载菜单分类失败", { err })
               this.typeListData = []
               this.dishListData = []
               this.dishListItems = []
             }),
         ])
-
-        if (initErrors.length > 0) {
-          this.showErrorToast("页面加载异常，请点击重试")
-        }
 
         // Private: cart requires login.  Silently skip when anonymous.
         if (this.token()) {
@@ -926,10 +937,13 @@ export default {
       }
 
       const normalized = this.normalizeActionPayload(payload, form)
+      if (!normalized.item) {
+        return false
+      }
       const item = { ...normalized.item }
       const actionForm = normalized.form || ""
 
-      if (!item) {
+      if (!item || Object.keys(item).length === 0) {
         return false
       }
 
@@ -967,7 +981,13 @@ export default {
       let dishFlavorDatas = ""
       let flavorRemark = []
       if (item.flavorRemark) {
-        flavorRemark = JSON.parse(item.flavorRemark)
+        try {
+          flavorRemark = JSON.parse(item.flavorRemark)
+        } catch (parseErr) {
+          this.rollbackAddDishState(prevTablewareNumber, prevDishNumber, prevOpenMoreNormPop)
+          this.showErrorToast("规格数据异常，请重新选择", { err: parseErr })
+          return false
+        }
       }
       if (item.dishFlavor !== "" && item.dishFlavor) {
         dishFlavorDatas = item.dishFlavor
@@ -1003,26 +1023,44 @@ export default {
         }
       }
 
-      newAddShoppingCartAdd(this.buildMerchantParams(params))
-        .then((res) => {
-          if (res.code === 1) {
-            this.getTableOrderDishListes()
-            this.getDishListDataes(this.rightIdAndType, this.typeIndex)
-            this.flavorDataes = []
-          } else {
-            this.rollbackAddDishState(prevTablewareNumber, prevDishNumber, prevOpenMoreNormPop)
-            this.showErrorToast(res.msg || "加购失败")
-          }
-        })
-        .catch((err) => {
+      try {
+        const res = await newAddShoppingCartAdd(this.buildMerchantParams(params))
+        if (res.code === 1) {
+          this.getTableOrderDishListes()
+          this.getDishListDataes(this.rightIdAndType, this.typeIndex)
+          this.flavorDataes = []
+          return true
+        } else {
           this.rollbackAddDishState(prevTablewareNumber, prevDishNumber, prevOpenMoreNormPop)
-          this.showErrorToast("加购失败，请重试", { err })
-        })
+          this.showErrorToast(res.msg || "加购失败")
+          return false
+        }
+      } catch (err) {
+        this.rollbackAddDishState(prevTablewareNumber, prevDishNumber, prevOpenMoreNormPop)
+        this.showErrorToast("加购失败，请重试", { err })
+        return false
+      }
     },
+    addShop(item) {
       this.dishDetailes = item
       this.addDishAction(item, "menu")
     },
     async redDishAction(payload, form) {
+      // Private action guard: subtracting from cart requires login.
+      if (!this.token()) {
+        uni.showModal({
+          title: "温馨提示",
+          content: "请先完成微信登录后再操作。",
+          showCancel: false,
+          success: async (result) => {
+            if (result.confirm) {
+              await this.triggerLoginFlow()
+            }
+          },
+        })
+        return false
+      }
+
       const resolvedMerchantId = this.getResolvedMerchantId()
       if (!resolvedMerchantId) {
         this.showErrorToast("商户信息缺失，正在跳转选择页面")
@@ -1031,10 +1069,13 @@ export default {
       }
 
       const normalized = this.normalizeActionPayload(payload, form)
+      if (!normalized.item) {
+        return false
+      }
       const item = { ...normalized.item }
       const actionForm = normalized.form || ""
 
-      if (!item) {
+      if (!item || Object.keys(item).length === 0) {
         return false
       }
 
@@ -1052,7 +1093,13 @@ export default {
       let dishFlavorDatas = ""
       let flavorRemark = []
       if (item.flavorRemark) {
-        flavorRemark = JSON.parse(item.flavorRemark)
+        try {
+          flavorRemark = JSON.parse(item.flavorRemark)
+        } catch (parseErr) {
+          this.rollbackAddDishState(prevTablewareNumber, prevDishNumber, prevOpenMoreNormPop)
+          this.showErrorToast("规格数据异常，请重新选择", { err: parseErr })
+          return false
+        }
       }
       if (item.dishFlavor !== "" && item.dishFlavor) {
         dishFlavorDatas = item.dishFlavor
@@ -1144,10 +1191,18 @@ export default {
       this.moreNormDishdata = item
       this.openDetailPop = false
       this.openMoreNormPop = true
-      this.moreNormdata = item.flavors.map((obj) => ({
-        ...obj,
-        value: JSON.parse(obj.value),
-      }))
+      this.moreNormdata = item.flavors.map((obj) => {
+        let parsedValue = []
+        try {
+          parsedValue = JSON.parse(obj.value)
+        } catch (parseErr) {
+          console.error("[Flavor Parse Error]", obj.name, obj.value, parseErr)
+        }
+        return {
+          ...obj,
+          value: parsedValue,
+        }
+      })
       this.moreNormdata.forEach((current) => {
         if (current.value && current.value.length > 0) {
           this.flavorDataes.push(current.value[0])
