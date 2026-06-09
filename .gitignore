@@ -99,10 +99,53 @@ thesis.docx
 GIT_CLEANUP_PLAN.md
 
 # =============================================================================
-# Nginx runtime
+# Project-specific non-code content
+# =============================================================================
+# Thesis / paper content (personal academic work, not project code)
+core/paper_work/
+core/paper-context/
+core/paper-output/
+core/thesis-ai-standard/
+core/天天开心.docx
+thesis.docx
+docs/thesis-visual-evidence/
+
+# Design assets (Figma, mockups, GIFs)
+core/miniapp/design/
+
+# Task / PRD documents (development planning, not source code)
+tasks/
+core/miniapp/tasks/
+
+# Preview files
+miniapp-preview.json
+miniapp-preview.png
+
+# Claude worktrees
+core/.claude/
+
+# =============================================================================
+# Nginx runtime & build artifacts
 # =============================================================================
 nginx/logs/
 nginx/html/sky/merchant-admin/favicon.ico
+
+# Nginx binary & source maps (build artifacts)
+core/nginx/nginx.exe
+core/nginx/html/sky/legacy/js/*.js.map
+core/nginx/html/sky/img/_asset_tools/node_modules/
+
+# =============================================================================
+# Miniapp build artifacts
+# =============================================================================
+core/miniapp/unpackage/dist/
+core/miniapp/unpackage/dist/dev/.sourcemap/
+
+# =============================================================================
+# Backend build artifacts
+# =============================================================================
+core/backend/sky-server/target/
+core/backend/**/target/
 
 # =============================================================================
 # Environment / Secrets
